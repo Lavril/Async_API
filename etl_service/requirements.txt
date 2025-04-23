@@ -1,0 +1,5 @@
+pydantic==2.11.3
+pydantic-settings==2.8.1
+sqlalchemy==2.0.40
+psycopg2-binary==2.9.10
+elasticsearch==8.18.0

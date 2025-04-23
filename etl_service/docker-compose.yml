@@ -1,0 +1,38 @@
+version: '3'
+services:
+  etl_service:
+    build: .
+    depends_on:
+      elastic:
+        condition: service_healthy
+    volumes:
+      - ./app/storage:/opt/app/storage
+    env_file:
+      - ./.env
+    networks:
+      - movies-services
+
+  elastic:
+    image: elasticsearch:8.6.2
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms200m -Xmx200m"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    ports:
+      - ${ELASTIC_PORT}:${ELASTIC_PORT}
+    healthcheck:
+      test: "curl -s http://elastic:${ELASTIC_PORT} >/dev/null || exit 1"
+      interval: 10s
+      timeout: 10s
+      retries: 15
+    networks:
+      - movies-services
+
+volumes:
+  elastic-data:
+
+networks:
+  movies-services:
+    external: true
