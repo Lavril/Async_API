@@ -5,8 +5,6 @@ services:
     depends_on:
       elastic:
         condition: service_healthy
-    volumes:
-      - ./app/storage:/opt/app/storage
     env_file:
       - ./.env
     networks:
