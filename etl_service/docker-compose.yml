@@ -3,14 +3,14 @@ services:
   etl_service:
     build: .
     depends_on:
-      elastic:
+      elasticsearch:
         condition: service_healthy
     env_file:
       - ./.env
     networks:
       - movies-services
 
-  elastic:
+  elasticsearch:
     image: elasticsearch:8.6.2
     environment:
       discovery.type: single-node
@@ -21,7 +21,7 @@ services:
     ports:
       - ${ELASTIC_PORT}:${ELASTIC_PORT}
     healthcheck:
-      test: "curl -s http://elastic:${ELASTIC_PORT} >/dev/null || exit 1"
+      test: "curl -s http://elasticsearch:${ELASTIC_PORT} >/dev/null || exit 1"
       interval: 10s
       timeout: 10s
       retries: 15
