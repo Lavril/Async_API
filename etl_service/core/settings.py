@@ -20,7 +20,7 @@ class PostgresSettings(BaseSettings):
     user: str = ...
     password: str = ...
 
-    schema: str = 'content'
+    postgres_schema: str = 'content'
 
     def get_dsn(self) -> dict:
         return self.model_dump(
