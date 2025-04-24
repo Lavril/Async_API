@@ -1,0 +1,71 @@
+version: '3.8'
+services:
+
+  fastapi:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    ports:
+      - "8000"
+    env_file:
+      - ./.env
+    depends_on:
+      theatre-db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27.4
+    volumes:
+      - ./configs:/etc/nginx/conf.d:ro
+    depends_on:
+      - fastapi
+    ports:
+      - "80:80"
+
+  theatre-db:
+    image: postgres:17.4
+    volumes:
+      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: elasticsearch:8.6.2
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms200m -Xmx200m"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTIC_PORT}:${ELASTIC_PORT}"
+    healthcheck:
+      test: "curl -s http://elasticsearch:${ELASTIC_PORT} >/dev/null || exit 1"
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  etl:
+    build:
+      context: ./etl_service
+      dockerfile: Dockerfile
+    container_name: etl
+    depends_on:
+      theatre-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - ./.env
+
+volumes:
+  elastic-data:

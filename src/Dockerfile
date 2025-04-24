@@ -15,4 +15,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc \
 COPY . ./
 RUN chmod +x ./main.py
 
-CMD ["python", "/opt/app/main.py"]
+CMD ["sh", "-c", "fastapi dev main.py --host 0.0.0.0 --port 8000 --reload"]
