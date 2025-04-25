@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 import logging
+from typing import Any, Generator
 
 import psycopg
-from psycopg import connect, ClientCursor
+from psycopg import connect, Connection, ClientCursor
 from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
 
@@ -10,29 +11,29 @@ from core.backoff import backoff
 
 
 class PostgresConnector:
-    """Подключение к PostgreSQL"""
+    """PostgresSQL context manager connector."""
 
     def __init__(self, dsn: dict):
         self.dsn = make_conninfo(**dsn)
         self.logger = logging.getLogger(__name__)
 
-    @backoff(psycopg.OperationalError, max_time=100)
-    def _create_connection(self):
-        """Функция подключения с повторными попытками"""
+    @backoff(psycopg.OperationalError)
+    def _create_connection(self) -> Connection:
+        """Create PostgresSQL connection with backoff."""
         return connect(self.dsn, row_factory=dict_row, cursor_factory=ClientCursor)
 
     @contextmanager
-    def connect(self):
-        """Контекстный менеджер для подключения к PostgreSQL."""
+    def connect(self) -> Generator[Connection, Any, None]:
+        """PostgresSQL context manager."""
         conn = None
         try:
             conn = self._create_connection()
-            self.logger.info("Соединение с PostgreSQL установлено.")
+            self.logger.info('Successful connection to PostgresSQL')
             yield conn
         except psycopg.OperationalError:
-            self.logger.exception("Ошибка при подключении к PostgreSQL")
+            self.logger.exception('Get connection error from PostgresSQL')
             raise
         finally:
             if conn:
                 conn.close()
-                self.logger.info("Соединение с PostgreSQL закрыто")
+                self.logger.info('Close connection with PostgresSQL')

@@ -1,13 +1,9 @@
-import datetime as dt
-import os
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-MIN_DT = dt.datetime(1, 1, 1, 0, 0)
-START_DT = dt.datetime.now()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,12 +16,17 @@ class PostgresSettings(BaseSettings):
     user: str = ...
     password: str = ...
 
-    postgres_schema: str = 'content'
+    dbschema: str = 'content'
+    tables: list[dict] = [
+        {'name': 'film_work', 'batch_size': 100},
+        {'name': 'genre', 'batch_size': 1},
+        {'name': 'person', 'batch_size': 100},
+    ]
+    main_table: str = 'film_work'
 
-    def get_dsn(self) -> dict:
+    def get_dsn(self) -> dict[str, Any]:
         return self.model_dump(
-            include={'host', 'port', 'dbname', 'user', 'password'}
-        )
+            include={'host', 'port', 'dbname', 'user', 'password'})
 
 
 class ElasticSettings(BaseSettings):
@@ -33,51 +34,19 @@ class ElasticSettings(BaseSettings):
     host: str = ...
     port: str = ...
 
-    indies: list[str] = ['movies']
+    indices: list[str] = ['movies', 'genres', 'persons']
 
-    def get_host(self):
+    def get_host(self) -> str:
         return f'http://{self.host}:{self.port}'
 
 
 class Settings(BaseSettings):
     debug: bool = Field(...)
+    main_loop_time: int = 15 * 60
+    backoff_time: int = 3 * 60
+    state_path: Path = BASE_DIR / 'storage/state_storage.json'
     postgres_settings: PostgresSettings = PostgresSettings()
     elastic_settings: ElasticSettings = ElasticSettings()
 
 
 settings = Settings()
-
-
-MAIN_TABLE = {
-        'name': 'film_work',
-        'batch_size': 100
-    }
-RELATED_TABLES = [
-    {
-        'name': 'person',
-        'batch_size': 100
-    },
-    {
-        'name': 'genre',
-        'batch_size': 1
-    },
-]
-PERSON_ROLES = [
-    'director',
-    'actor',
-    'writer'
-]
-
-STATE_STORAGE = BASE_DIR / 'state/state_storage.json'
-STATE_SCHEMA = {
-    'main_key': ('last_filmwork', dt.datetime.min),
-    'additional_keys': [
-        ('last_person', dt.datetime.min),
-        ('last_genre', dt.datetime.min),
-    ]
-}
-
-BASE_BATCH_SIZE = 100
-
-MAIN_LOOP_TIME = 900
-BACKOFF_TIME = 300

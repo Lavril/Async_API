@@ -4,10 +4,12 @@ import random
 import time
 from typing import Type
 
+from core.settings import settings
+
 
 def backoff(
         exception: Type[Exception] | tuple[Type[Exception]],
-        max_time: int,
+        max_time: int = settings.backoff_time,
         max_tries: int = 10,
         start_time: int = 1,
         factor: int = 2,
@@ -27,13 +29,12 @@ def backoff(
                 timeout = min(delay, max_time)
                 n += 1
                 try:
-                    logger.info(f'Try {func.__name__} for {n} time')
                     return func(*args, **kwargs)
                 except exceptions as e:
                     if timeout == max_time:
                         raise TimeoutError(f'Timeout backoff: {e}')
                     logger.warning(
-                        f'{func.__name__} failed with {type(e)}. Retrying in {timeout} seconds')
+                        f'{func.__name__} failed with {type(e)}. Retrying in {timeout} sec.')
                     time.sleep(timeout)
             raise TimeoutError('Maximum number of attempts reached')
         return inner

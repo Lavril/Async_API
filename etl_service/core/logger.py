@@ -9,7 +9,10 @@ if settings.debug:
 else:
     log_level = logging.INFO
 
+# Set logging level for 3rd party libraries
+logging.getLogger('filelock').setLevel(logging.ERROR)
 logging.getLogger('elastic_transport.transport').setLevel(logging.ERROR)
+logging.getLogger('elastic_transport.node_pool').setLevel(logging.ERROR)
 
 
 handlers = [logging.StreamHandler(stream=sys.stdout),]
