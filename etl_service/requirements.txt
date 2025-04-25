@@ -2,3 +2,4 @@ pydantic==2.11.3
 pydantic-settings==2.8.1
 psycopg[binary]==3.2.5
 elasticsearch==8.18.0
+filelock==3.18.0
