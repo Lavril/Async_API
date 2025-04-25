@@ -1,13 +1,23 @@
 version: '3.8'
 services:
 
-  fastapi:
-    build:
-      context: ./src
-      dockerfile: Dockerfile
+  movies-admin:
+    build: movies_admin
     expose:
       - "8000"
-    ports:
+    env_file:
+      - ./.env
+    depends_on:
+      theatre-db:
+        condition: service_healthy
+    volumes:
+      - static_volume:/opt/app/static/
+
+  fastapi:
+    build:
+      context: fast_api
+      dockerfile: Dockerfile
+    expose:
       - "8000"
     env_file:
       - ./.env
@@ -19,6 +29,7 @@ services:
     image: nginx:1.27.4
     volumes:
       - ./configs:/etc/nginx/conf.d:ro
+      - static_volume:/opt/app/static/
     depends_on:
       - fastapi
     ports:
@@ -27,9 +38,10 @@ services:
   theatre-db:
     image: postgres:17.4
     volumes:
+      - pgdata:/var/lib/postgresql/data
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432"
+    expose:
+      - "${POSTGRES_PORT}"
     env_file:
       - ./.env
     healthcheck:
@@ -46,10 +58,10 @@ services:
       ES_JAVA_OPTS: "-Xms200m -Xmx200m"
     volumes:
       - elastic-data:/usr/share/elasticsearch/data
-    ports:
-      - "${ELASTIC_PORT}:${ELASTIC_PORT}"
+    expose:
+      - "${ELASTIC_PORT}"
     healthcheck:
-      test: "curl -s http://elasticsearch:${ELASTIC_PORT} >/dev/null || exit 1"
+      test: ["CMD", "curl", "-s", "http://localhost:9200"]
       interval: 10s
       timeout: 10s
       retries: 15
@@ -69,3 +81,5 @@ services:
 
 volumes:
   elastic-data:
+  pgdata:
+  static_volume:
