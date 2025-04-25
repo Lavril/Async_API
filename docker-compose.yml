@@ -74,8 +74,6 @@ services:
       - elastic-data:/usr/share/elasticsearch/data
     expose:
       - "${ELASTIC_PORT}"
-    ports:
-      - "${ELASTIC_PORT}:${ELASTIC_PORT}"
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -94,8 +92,6 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf
     expose:
       - "${REDIS_PORT}"
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
