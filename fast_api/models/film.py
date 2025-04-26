@@ -1,9 +1,15 @@
+from typing import Optional, List
 
-# Используем pydantic для упрощения работы при перегонке данных из json в объекты
-from pydantic import BaseModel
+from .base import BaseDocument
+from .genre import Genre
+from .person import Person
 
 
-class Film(BaseModel):
-    id: str
+class Film(BaseDocument):
     title: str
-    description: str
+    imdb_rating: Optional[float] = None
+    description: Optional[str] = None
+    genres: Optional[List[Genre]] = None
+    actors: Optional[List[Person]] = None
+    writers: Optional[List[Person]] = None
+    directors: Optional[List[Person]] = None

@@ -8,7 +8,7 @@ lint:
 	@flake8
 
 run:
-	@fastapi dev main.py
+	@fastapi dev fast_api/main.py
 
 clean:
 	@rm -rf .pytest_cache/ .mypy_cache/ junit/ build/ dist/
