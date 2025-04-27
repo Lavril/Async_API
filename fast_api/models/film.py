@@ -6,6 +6,7 @@ from .person import Person
 
 
 class Film(BaseDocument):
+    """Модель фильмов"""
     title: str
     imdb_rating: Optional[float] = None
     description: Optional[str] = None

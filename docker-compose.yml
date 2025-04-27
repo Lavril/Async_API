@@ -74,8 +74,6 @@ services:
     image: elasticsearch:8.6.2
     volumes:
       - elastic-data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
     expose:
       - "${ELASTIC_PORT}"
     environment:

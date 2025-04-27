@@ -22,15 +22,6 @@ app = FastAPI(
 )
 
 
-@app.get("/api/v1/search/",
-         # response_model=List[ShortFilm],
-         summary="Поиск кинопроизведений",
-         description="Полнотекстовый поиск по кинопроизведениям",
-         response_description="Название и рейтинг фильма",
-         tags=['Полнотекстовый поиск']
-         )
-
-
 @app.on_event('startup')
 async def startup():
     # Подключаемся к базам при старте сервера

@@ -1,9 +1,11 @@
 from http import HTTPStatus
+from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from services.film import FilmService, get_film_service
-from .models import FilmFullResponse
+from .models import FilmFullResponse, FilmShortResponse, FilmBaseResponse, Genre
 
 # Объект router, в котором регистрируем обработчики
 router = APIRouter()
@@ -14,11 +16,12 @@ router = APIRouter()
     response_model=FilmFullResponse,
     summary="Получить информацию о кинопроизведении",
     description="Возвращает полную информацию о кинопроизведении по его идентификатору",
-    response_description="Объект с информацией о кинопроизведении",)
+    response_description="Объект с информацией о кинопроизведении")
 async def film_details(
         film_id: str = Path(..., example="3d825f60-9fff-4dfe-b294-1a45fa1e115d", description="UUID фильма"),
         film_service: FilmService = Depends(get_film_service)
 ) -> FilmFullResponse:
+    """Получение информацию о кинопроизведении по идентификатору"""
     film = await film_service.get_by_id(film_id)
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='film not found')
@@ -33,3 +36,93 @@ async def film_details(
         writers=[writer.model_dump() for writer in film.writers] if film.writers else None,
         directors=[director.model_dump() for director in film.directors] if film.directors else None
     )
+
+
+@router.get(
+    '/',
+    response_model=List[FilmShortResponse],
+    summary="Получить список фильмов по заданным критериям",
+    description="Возвращает список из короткой информации по кинопроизведениям по заданным фильтрам",
+    response_description="Список кинопроизведении с короткой информацией",)
+async def list_films(
+        sort: str = Query(
+            "-imdb_rating",
+            regex="^-?imdb_rating$",
+            description="Сортировка (-imdb_rating для DESC, imdb_rating для ASC)"
+        ),
+        genre: Optional[UUID] = Query(
+            None,
+            description="UUID жанра для фильтрации"
+        ),
+        page: int = Query(
+            1,
+            ge=1,
+            description="Номер страницы"
+        ),
+        size: int = Query(
+            50,
+            ge=1,
+            le=100,
+            description="Количество элементов на странице (1-100)"
+        ),
+        film_service: FilmService = Depends(get_film_service)
+) -> List[FilmShortResponse]:
+    """
+    Получить список фильмов с возможностью:
+    - Сортировки по рейтингу (по убыванию или возрастанию)
+    - Фильтрации по жанру
+    - Пагинации
+    """
+    films = await film_service.get(
+        sort=sort,
+        genre=genre,
+        page=page,
+        size=size
+    )
+    if not films:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='films not found')
+
+    result = []
+    for source in films:
+        result.append(FilmShortResponse(
+            uuid=source.uuid,
+            title=source.title,
+            imdb_rating=source.imdb_rating,
+            genres=[Genre(uuid=g.uuid, name=g.name)
+                    for g in source.genres]
+        ))
+
+    return result
+
+
+@router.get(
+    "/search/",
+    response_model=List[FilmBaseResponse],
+    summary="Поиск кинопроизведений",
+    description="Полнотекстовый поиск по названиям и описаниям кинопроизведений",
+    response_description="Название и рейтинг фильма"
+)
+async def search_films(
+        query: str = Query(..., min_length=2, description="Поисковый запрос"),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(50, ge=1, le=100, description="Количество элементов"),
+        film_service: FilmService = Depends(get_film_service)
+) -> List[FilmBaseResponse]:
+    """Поиск кинопроизведений"""
+    films = await film_service.search(
+        query=query,
+        page=page,
+        size=size
+    )
+
+    if not films:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='films not found')
+
+    result = []
+    for source in films:
+        result.append(FilmShortResponse(
+            uuid=source.uuid,
+            title=source.title,
+        ))
+
+    return films
