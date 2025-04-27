@@ -118,15 +118,26 @@ class FilmFullResponse(FilmShortResponse):
 
 class PersonFilmsRoles(FilmBaseResponse):
     """Модель ролей в фильме"""
-    roles: Optional[List["str"]] = Field(
+    roles: Optional[list] = Field(
         None,
         description="Должность человека"
     )
 
 
+class PersonFilms(FilmBaseResponse):
+    """Модель фильмов с рейтингом"""
+    imdb_rating: Optional[float] = Field(
+        None,
+        example=8.6,
+        description="Рейтинг кинопроизведения на IMDB",
+        ge=0,
+        le=10
+    )
+
+
 class PersonFullResponse(Person):
     """Полная информация по персоне"""
-    films: Optional[List[PersonFilmsRoles]] = Field(
+    films: Optional[list] = Field(
         None,
         description="Список кинопроизведений с должностями человека"
     )

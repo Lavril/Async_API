@@ -14,3 +14,9 @@ class Film(BaseDocument):
     actors: Optional[List[Person]] = None
     writers: Optional[List[Person]] = None
     directors: Optional[List[Person]] = None
+
+
+class FilmShort(BaseDocument):
+    title: str
+    imdb_rating: Optional[float] = None
+    roles: List[str] = None
