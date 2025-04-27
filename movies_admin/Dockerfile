@@ -13,7 +13,9 @@ COPY run_uwsgi.sh run_uwsgi.sh
 COPY /requirements.txt requirements.txt
 COPY /uwsgi/uwsgi.ini uwsgi.ini
 
-RUN  mkdir -p /var/www/static/ \
+RUN  apt-get update \
+     && apt-get install -y gcc python3-dev \
+     && mkdir -p /var/www/static/ \
      && mkdir -p /var/www/media/ \
      && mkdir -p /opt/app/static/ \
      && mkdir -p /opt/app/media/ \
