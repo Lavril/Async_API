@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
@@ -34,7 +33,7 @@ async def genre_details(
 
 @router.get(
     '/',
-    response_model=List[Genre],
+    response_model=list[Genre],
     summary="Получить список жанров",
     description="Возвращает список жанров с их уникальными идентификаторами",
     response_description="Список жанров",)
@@ -51,7 +50,7 @@ async def list_genres(
             description="Количество элементов на странице (1-100)"
         ),
         genre_service: GenreService = Depends(get_genre_service)
-) -> List[Genre]:
+) -> list[Genre]:
     """
     Получить список жанров с возможностью:
     - Пагинации

@@ -1,6 +1,5 @@
 import json
 from functools import lru_cache
-from typing import Optional, List
 from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch, NotFoundError, BadRequestError
@@ -20,7 +19,7 @@ class FilmService:
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, film_id: str) -> Optional[Film]:
+    async def get_by_id(self, film_id: str) -> Film | None:
         """
         Возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе.
 
@@ -43,10 +42,10 @@ class FilmService:
     async def get(
             self,
             sort: str,
-            genre: Optional[UUID],
+            genre: UUID | None,
             page: int,
             size: int
-    ) -> Optional[List[Film]]:
+    ) -> list[Film] | None:
         """
         Возвращает список фильмов по заданным критериям.
 
@@ -63,7 +62,7 @@ class FilmService:
             query: str,
             page: int,
             size: int
-    ) -> Optional[List[Film]]:
+    ) -> list[Film] | None:
         """Возвращает список найденных фильмов"""
         query = {
             "query": {
@@ -92,10 +91,10 @@ class FilmService:
     async def _get_films_by_filters(
         self,
         sort: str = "-imdb_rating",
-        genre: Optional[UUID] = None,
+        genre: UUID | None = None,
         page: int = 1,
         size: int = 50
-    ) -> Optional[List[Film]]:
+    ) -> list[Film] | None:
         """Поиск фильмов по критериям"""
         # Проверяем кэш
         cache_key = await self._get_films_cache_key(sort, genre, page, size)
@@ -115,10 +114,10 @@ class FilmService:
     async def _get_films_from_elastic(
             self,
             sort: str,
-            genre: Optional[UUID],
+            genre: UUID | None,
             page: int,
             size: int
-    ) -> Optional[List[Film]]:
+    ) -> list[Film] | None:
         """Получение фильмов из elasticsearch по заданным критериям"""
         # Настройки сортировки
         sort_order = "desc" if sort.startswith("-") else "asc"
@@ -161,7 +160,7 @@ class FilmService:
 
         return [Film(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_film_from_elastic(self, film_id: str) -> Optional[Film]:
+    async def _get_film_from_elastic(self, film_id: str) -> Film | None:
         """Получение фильма по ID из elasticsearch"""
         try:
             doc = await self.elastic.get(index='movies', id=film_id)
@@ -169,7 +168,7 @@ class FilmService:
             return None
         return Film(**doc['_source'])
 
-    async def _film_from_cache(self, film_id: str) -> Optional[Film]:
+    async def _film_from_cache(self, film_id: str) -> Film | None:
         """Поиск фильма по ID в кэше redis"""
         data = await self.redis.get(f"film_{film_id}")
         if not data:
@@ -182,19 +181,19 @@ class FilmService:
         """Сохранение фильма в кэш redis"""
         await self.redis.set(f"film_{film.uuid}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _get_films_cache_key(self, sort: str, genre: Optional[UUID], page: int, size: int) -> str:
+    async def _get_films_cache_key(self, sort: str, genre: UUID | None, page: int, size: int) -> str:
         """Генерация ключа кэша"""
         genre_part = f":genre_{genre}" if genre else ""
         return f"films:sort_{sort}{genre_part}:page_{page}:size_{size}"
 
-    async def _films_from_cache(self, cache_key: str) -> Optional[List[Film]]:
+    async def _films_from_cache(self, cache_key: str) -> list[Film] | None:
         """Получение фильмов из кэша"""
         data = await self.redis.get(cache_key)
         if not data:
             return None
         return [Film.parse_raw(item) for item in json.loads(data)]
 
-    async def _put_films_to_cache(self, cache_key: str, films: List[Film]):
+    async def _put_films_to_cache(self, cache_key: str, films: list[Film]):
         """Сохранение фильмов в кэш redis"""
         await self.redis.set(cache_key, json.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 

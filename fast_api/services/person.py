@@ -1,6 +1,5 @@
 import json
 from functools import lru_cache
-from typing import Optional, List
 
 from elasticsearch import AsyncElasticsearch, NotFoundError, BadRequestError
 from fastapi import Depends
@@ -21,7 +20,7 @@ class PersonService:
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, person_id: str) -> Optional[Person]:
+    async def get_by_id(self, person_id: str) -> Person | None:
         """
         Возвращает объект Person.
 
@@ -37,7 +36,7 @@ class PersonService:
 
         return person
 
-    async def get_film_by_id(self, person_id: str) -> Optional[List[FilmShort]]:
+    async def get_film_by_id(self, person_id: str) -> list[FilmShort] | None:
         """
         Возвращает объекты FilmShort.
 
@@ -58,7 +57,7 @@ class PersonService:
             query: str,
             page: int,
             size: int
-    ) -> Optional[List[Person]]:
+    ) -> list[Person] | None:
         """Возвращает список найденных персон"""
         query = {
             "query": {
@@ -91,7 +90,7 @@ class PersonService:
             hit["_source"]["films"] = films
         return [Person(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_person_from_elastic(self, person_id: str) -> Optional[Person]:
+    async def _get_person_from_elastic(self, person_id: str) -> Person | None:
         """Получение person по ID из Elasticsearch + его фильмы и роли"""
         try:
             doc = await self.elastic.get(index='persons', id=person_id)
@@ -103,7 +102,7 @@ class PersonService:
         person.films = await self._get_film_by_person_id(person_id)
         return person
 
-    async def _get_film_by_person_id(self, person_id: str) -> Optional[List[FilmShort]]:
+    async def _get_film_by_person_id(self, person_id: str) -> list[FilmShort] | None:
         # Теперь ищем фильмы, где участвует персона
         query = {
             "query": {
@@ -149,7 +148,7 @@ class PersonService:
 
         return films
 
-    async def _person_from_cache(self, person_id: str) -> Optional[Person]:
+    async def _person_from_cache(self, person_id: str) -> Person | None:
         """Поиск person по ID в кэше redis"""
         data = await self.redis.get(f"person_{person_id}")
         if not data:
@@ -158,7 +157,7 @@ class PersonService:
         person = Person.parse_raw(data)
         return person
 
-    async def _films_from_cache(self, person_id: str) -> Optional[FilmShort]:
+    async def _films_from_cache(self, person_id: str) -> list[FilmShort] | None:
         """Поиск films по ID в кэше redis"""
         data = await self.redis.get(f"films_person_{person_id}")
         if not data:
@@ -172,7 +171,7 @@ class PersonService:
         """Сохранение person в кэш redis"""
         await self.redis.set(f"person_{person.uuid}", person.json(), ex=PERSON_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _put_films_person_to_cache(self, person_id: str, films: List[FilmShort]):
+    async def _put_films_person_to_cache(self, person_id: str, films: list[FilmShort]):
         """Сохранение person films в кэш redis"""
         films_json = json.dumps([film.dict() for film in films])
         await self.redis.set(f"films_person_{person_id}", films_json, ex=PERSON_CACHE_EXPIRE_IN_SECONDS)

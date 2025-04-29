@@ -1,6 +1,5 @@
 import json
 from functools import lru_cache
-from typing import Optional, List
 
 from elasticsearch import AsyncElasticsearch, NotFoundError, BadRequestError
 from fastapi import Depends
@@ -20,7 +19,7 @@ class GenreService:
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, genre_id: str) -> Optional[Genre]:
+    async def get_by_id(self, genre_id: str) -> Genre | None:
         """
         Возвращает объект жанра.
 
@@ -43,7 +42,7 @@ class GenreService:
             self,
             page: int,
             size: int
-    ) -> Optional[List[Genre]]:
+    ) -> list[Genre] | None:
         """
         Возвращает список жанров по заданным критериям.
 
@@ -57,7 +56,7 @@ class GenreService:
             self,
             page: int,
             size: int
-    ) -> Optional[List[Genre]]:
+    ) -> list[Genre] | None:
         """Возвращает список найденных жанров"""
         query = {
             "from": (page - 1) * size,
@@ -78,7 +77,7 @@ class GenreService:
         self,
         page: int = 1,
         size: int = 50
-    ) -> Optional[List[Genre]]:
+    ) -> list[Genre] | None:
         """Поиск жанров по критериям"""
 
         cache_key = await self._get_genres_cache_key(page, size)
@@ -98,7 +97,7 @@ class GenreService:
             self,
             page: int,
             size: int
-    ) -> Optional[List[Genre]]:
+    ) -> list[Genre] | None:
         """Получение жанров из elasticsearch по заданным критериям"""
 
         query = {
@@ -124,7 +123,7 @@ class GenreService:
 
         return [Genre(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_genre_from_elastic(self, genre_id: str) -> Optional[Genre]:
+    async def _get_genre_from_elastic(self, genre_id: str) -> Genre | None:
         """Получение жанра по ID из elasticsearch"""
         try:
             doc = await self.elastic.get(index='genres', id=genre_id)
@@ -132,7 +131,7 @@ class GenreService:
             return None
         return Genre(**doc['_source'])
 
-    async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
+    async def _genre_from_cache(self, genre_id: str) -> Genre | None:
         """Поиск жанра по ID в кэше redis"""
         data = await self.redis.get(f"genre_{genre_id}")
         if not data:
@@ -149,14 +148,14 @@ class GenreService:
         """Генерация ключа кэша"""
         return f"genres:page_{page}:size_{size}"
 
-    async def _genres_from_cache(self, cache_key: str) -> Optional[List[Genre]]:
+    async def _genres_from_cache(self, cache_key: str) -> list[Genre] | None:
         """Получение жанров из кэша"""
         data = await self.redis.get(cache_key)
         if not data:
             return None
         return [Genre(**item) for item in json.loads(data)]
 
-    async def _put_genres_to_cache(self, cache_key: str, genres: List[Genre]):
+    async def _put_genres_to_cache(self, cache_key: str, genres: list[Genre]):
         """Сохранение жанров в кэш redis"""
         await self.redis.set(
             cache_key,

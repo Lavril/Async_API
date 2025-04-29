@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
@@ -34,14 +33,14 @@ async def person_details(
 
 @router.get(
     '/{person_id}/films',
-    response_model=List[PersonFilms],
+    response_model=list[PersonFilms],
     summary="Получить список фильмов персоны",
     description="Возвращает список из короткой информации по кинопроизведениям персоны",
     response_description="Список кинопроизведений персоны с короткой информацией",)
 async def list_films(
         person_id: str = Path(..., example="5b4bf1bc-3397-4e83-9b17-8b10c6544ed1", description="UUID персоны"),
         person_service: PersonService = Depends(get_person_service)
-) -> List[PersonFilms]:
+) -> list[PersonFilms]:
 
     films = await person_service.get_film_by_id(person_id)
 
@@ -61,7 +60,7 @@ async def list_films(
 
 @router.get(
     "/search/",
-    response_model=List[PersonFullResponse],
+    response_model=list[PersonFullResponse],
     summary="Поиск персон",
     description="Полнотекстовый поиск персон по имени",
     response_description="Роли и фильмы персон",
@@ -71,7 +70,7 @@ async def search_films(
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(50, ge=1, le=100, description="Количество элементов"),
         person_service: PersonService = Depends(get_person_service)
-) -> List[PersonFullResponse]:
+) -> list[PersonFullResponse]:
 
     persons = await person_service.search(
         query=query,
