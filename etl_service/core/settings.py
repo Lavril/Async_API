@@ -10,9 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class PostgresSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='postgres_')
-    host: str = Field(..., alias='POSTGRES_HOST')
-    port: int = Field(..., alias='POSTGRES_PORT')
     dbname: str = Field(..., alias='POSTGRES_DB')
+    host: str = ...
+    port: int = 5432
     user: str = ...
     password: str = ...
 
@@ -32,7 +32,7 @@ class PostgresSettings(BaseSettings):
 class ElasticSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='elastic_')
     host: str = ...
-    port: str = ...
+    port: str = 9200
 
     indices: list[str] = ['movies', 'genres', 'persons']
 
@@ -41,7 +41,8 @@ class ElasticSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-    debug: bool = Field(...)
+    # Variables are thrown into the container environment at the build stage
+    debug: bool = False
     main_loop_time: int = 15 * 60
     backoff_time: int = 3 * 60
     state_path: Path = BASE_DIR / 'storage/state_storage.json'
