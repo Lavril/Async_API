@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
@@ -8,6 +10,17 @@ from core.config import settings
 from db import elastic, redis
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Подключаемся к базам при старте сервера
+    redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
+    elastic.es = AsyncElasticsearch(
+        hosts=[f'{settings.elastic_schema}{settings.elastic_host}:{settings.elastic_port}']
+    )
+    yield
+    # Отключаемся от баз при завершении работы
+    await redis.redis.close()
+    await elastic.es.close()
 app = FastAPI(
     # Конфигурируем название проекта. Оно будет отображаться в документации
     title=settings.project_name,
@@ -20,23 +33,8 @@ app = FastAPI(
     # Можно сразу сделать небольшую оптимизацию сервиса
     # и заменить стандартный JSON-сериализатор на более шуструю версию, написанную на Rust
     default_response_class=ORJSONResponse,
+    lifespan=lifespan
 )
-
-
-@app.on_event('startup')
-async def startup():
-    # Подключаемся к базам при старте сервера
-    # Подключиться можем при работающем event-loop
-    # Поэтому логика подключения происходит в асинхронной функции
-    redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
-    elastic.es = AsyncElasticsearch(hosts=[f'{settings.elastic_schema}{settings.elastic_host}:{settings.elastic_port}'])
-
-
-@app.on_event('shutdown')
-async def shutdown():
-    # Отключаемся от баз при выключении сервера
-    await redis.redis.close()
-    await elastic.es.close()
 
 
 # Подключаем роутер к серверу, указав префикс /v1/films
