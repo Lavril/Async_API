@@ -10,7 +10,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
 
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
+GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
 class GenreService:
@@ -143,7 +143,7 @@ class GenreService:
 
     async def _put_genre_to_cache(self, genre: Genre):
         """Сохранение жанра в кэш redis"""
-        await self.redis.set(f"genre_{genre.uuid}", genre.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(f"genre_{genre.uuid}", genre.json(), ex=GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def _get_genres_cache_key(self, page: int, size: int) -> str:
         """Генерация ключа кэша"""
@@ -161,7 +161,7 @@ class GenreService:
         await self.redis.set(
             cache_key,
             json.dumps([genre.dict() for genre in genres]),
-            ex=FILM_CACHE_EXPIRE_IN_SECONDS
+            ex=GENRE_CACHE_EXPIRE_IN_SECONDS
         )
 
 
