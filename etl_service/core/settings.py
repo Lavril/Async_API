@@ -5,9 +5,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
 class PostgresSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='postgres_')
     dbname: str = Field(..., alias='POSTGRES_DB')
@@ -43,9 +40,10 @@ class ElasticSettings(BaseSettings):
 class Settings(BaseSettings):
     # Variables are thrown into the container environment at the build stage
     debug: bool = False
+    base_dir: Path = Path(__file__).resolve().parent.parent
+    state_path: Path = base_dir / 'storage/state_storage.json'
     main_loop_time: int = 15 * 60
     backoff_time: int = 3 * 60
-    state_path: Path = BASE_DIR / 'storage/state_storage.json'
     postgres_settings: PostgresSettings = PostgresSettings()
     elastic_settings: ElasticSettings = ElasticSettings()
 
