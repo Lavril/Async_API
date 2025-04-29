@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -40,7 +39,7 @@ async def film_details(
 
 @router.get(
     '/',
-    response_model=List[FilmShortResponse],
+    response_model=list[FilmShortResponse],
     summary="Получить список фильмов по заданным критериям",
     description="Возвращает список из короткой информации по кинопроизведениям по заданным фильтрам",
     response_description="Список кинопроизведении с короткой информацией",)
@@ -50,7 +49,7 @@ async def list_films(
             regex="^-?imdb_rating$",
             description="Сортировка (-imdb_rating для DESC, imdb_rating для ASC)"
         ),
-        genre: Optional[UUID] = Query(
+        genre: UUID | None = Query(
             None,
             description="UUID жанра для фильтрации"
         ),
@@ -66,7 +65,7 @@ async def list_films(
             description="Количество элементов на странице (1-100)"
         ),
         film_service: FilmService = Depends(get_film_service)
-) -> List[FilmShortResponse]:
+) -> list[FilmShortResponse]:
     """
     Получить список фильмов с возможностью:
     - Сортировки по рейтингу (по убыванию или возрастанию)
@@ -97,7 +96,7 @@ async def list_films(
 
 @router.get(
     "/search/",
-    response_model=List[FilmBaseResponse],
+    response_model=list[FilmBaseResponse],
     summary="Поиск кинопроизведений",
     description="Полнотекстовый поиск по названиям и описаниям кинопроизведений",
     response_description="Название и рейтинг фильма"
@@ -107,7 +106,7 @@ async def search_films(
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(50, ge=1, le=100, description="Количество элементов"),
         film_service: FilmService = Depends(get_film_service)
-) -> List[FilmBaseResponse]:
+) -> list[FilmShortResponse]:
     """Поиск кинопроизведений"""
     films = await film_service.search(
         query=query,

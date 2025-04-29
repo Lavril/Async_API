@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, List
 
 from pydantic import Field, BaseModel, HttpUrl
 
@@ -32,7 +31,7 @@ class Genre(BaseModel):
         description="Название жанра",
         max_length=50
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         example="Фильмы с динамично развивающимся сюжетом",
         description="Описание жанра",
@@ -57,14 +56,14 @@ class FilmBaseResponse(BaseModel):
 
 class FilmShortResponse(FilmBaseResponse):
     """Короткая информация по кинопроизведениям"""
-    imdb_rating: Optional[float] = Field(
+    imdb_rating: float | None = Field(
         None,
         example=8.6,
         description="Рейтинг кинопроизведения на IMDB",
         ge=0,
         le=10
     )
-    genres: Optional[List[Genre]] = Field(
+    genres: list[Genre] | None = Field(
         None,
         description="Список жанров кинопроизведения"
     )
@@ -72,45 +71,45 @@ class FilmShortResponse(FilmBaseResponse):
 
 class FilmFullResponse(FilmShortResponse):
     """Полная информация по кинопроизведениям"""
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         example="The Imperial Forces...",
         description="Описание кинопроизведения",
         max_length=2000
     )
-    pg_rating: Optional[str] = Field(
+    pg_rating: str | None = Field(
         None,
         description="Возрастной рейтинг (PG, PG-13, R и т.д.)",
         example="PG-13",
         max_length=10
     )
-    duration: Optional[int] = Field(
+    duration: int | None = Field(
         None,
         description="Длительность фильма в минутах",
         example=120,
         gt=0
     )
-    release_year: Optional[int] = Field(
+    release_year: int | None = Field(
         None,
         description="Год выпуска кинопроизведения",
         example=1977,
         ge=1888,  # Первый фильм был снят в 1888 году
         le=datetime.now().year + 5  # Плюс небольшой запас на будущее
     )
-    poster_url: Optional[HttpUrl] = Field(
+    poster_url: HttpUrl | None = Field(
         None,
         description="URL постера фильма",
         example="https://example.com/posters/star_wars.jpg"
     )
-    actors: Optional[List[Person]] = Field(
+    actors: list[Person] | None = Field(
         None,
         description="Список актёров"
     )
-    writers: Optional[List[Person]] = Field(
+    writers: list[Person] | None = Field(
         None,
         description="Список сценаристов"
     )
-    directors: Optional[List[Person]] = Field(
+    directors: list[Person] | None = Field(
         None,
         description="Список режиссёров"
     )
@@ -118,7 +117,7 @@ class FilmFullResponse(FilmShortResponse):
 
 class PersonFilmsRoles(FilmBaseResponse):
     """Модель ролей в фильме"""
-    roles: Optional[list] = Field(
+    roles: list | None = Field(
         None,
         description="Должность человека"
     )
@@ -126,7 +125,7 @@ class PersonFilmsRoles(FilmBaseResponse):
 
 class PersonFilms(FilmBaseResponse):
     """Модель фильмов с рейтингом"""
-    imdb_rating: Optional[float] = Field(
+    imdb_rating: float | None = Field(
         None,
         example=8.6,
         description="Рейтинг кинопроизведения на IMDB",
@@ -137,15 +136,15 @@ class PersonFilms(FilmBaseResponse):
 
 class PersonFullResponse(Person):
     """Полная информация по персоне"""
-    films: Optional[list] = Field(
+    films: list | None = Field(
         None,
         description="Список кинопроизведений с должностями человека"
     )
 
 
 class GenreFullResponse(Genre):
-    """Полная информация по жарнам"""
-    films: Optional[List[FilmBaseResponse]] = Field(
+    """Полная информация по жанрам"""
+    films: list[FilmBaseResponse] | None = Field(
         None,
         description="Список кинопроизведений"
     )
