@@ -1,5 +1,3 @@
-from typing import Optional, List
-
 from .base import BaseDocument
 from .genre import Genre
 from .person import Person
@@ -8,15 +6,15 @@ from .person import Person
 class Film(BaseDocument):
     """Модель фильмов"""
     title: str
-    imdb_rating: Optional[float] = None
-    description: Optional[str] = None
-    genres: Optional[List[Genre]] = None
-    actors: Optional[List[Person]] = None
-    writers: Optional[List[Person]] = None
-    directors: Optional[List[Person]] = None
+    imdb_rating: float | None = None
+    description: str | None = None
+    genres: list[Genre] | None = None
+    actors: list[Person] | None = None
+    writers: list[Person] | None = None
+    directors: list[Person] | None = None
 
 
 class FilmShort(BaseDocument):
     title: str
-    imdb_rating: Optional[float] = None
-    roles: List[str] = None
+    imdb_rating: float | None = None
+    roles: list[str] = None
