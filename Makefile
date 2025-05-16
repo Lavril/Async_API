@@ -17,3 +17,15 @@ clean:
 
 pre-commit-install:
 	@pre-commit install
+
+test-space:
+	@docker-compose -f docker-compose.test.yml up --build
+
+docker:
+	@docker compose up --build
+
+docker-api:
+	@docker compose build fastapi
+
+tests:
+	@docker-compose -f docker-compose.test.yml up tests --build
