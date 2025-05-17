@@ -21,6 +21,14 @@ async def film_details(
         film_service: FilmService = Depends(get_film_service)
 ) -> FilmFullResponse:
     """Получение информацию о кинопроизведении по идентификатору"""
+    try:
+        UUID(film_id, version=4)
+    except ValueError:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid film ID format. Must be a valid UUID v4."
+        )
+
     film = await film_service.get_by_id(film_id)
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='film not found')

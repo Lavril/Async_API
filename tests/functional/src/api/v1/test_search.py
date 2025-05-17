@@ -1,6 +1,6 @@
 import pytest
 
-from ..settings import test_settings
+from tests.functional.settings import test_settings
 
 
 #  Название теста должно начинаться со слова `test_`
