@@ -10,7 +10,7 @@ from core.logger import logger
 from core.settings import settings
 from core.state_storage import JsonFileStorage, StateManager
 
-from db.elastic import ElasticConnector
+from db.elastic import ElasticClientFactory, ElasticConnector
 from db.postgres import PostgresConnector
 
 from services.extractor import PostgresExtractor
@@ -23,7 +23,8 @@ def load_from_postgres_to_elastic():
     """Main function for load from PostgresSQL to Elasticsearch."""
     state_manager = StateManager(JsonFileStorage())
     postgres = PostgresConnector(settings.postgres_settings.get_dsn())
-    elastic = ElasticConnector(settings.elastic_settings.get_host())
+    es_factory = ElasticClientFactory(settings.elastic_settings.get_host())
+    elastic   = ElasticConnector(es_factory)
     with postgres.connect() as pg_connection, elastic.connect() as es_client:
         extractor = PostgresExtractor(
             state_manager,
