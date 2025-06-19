@@ -5,6 +5,7 @@ import aiohttp
 from elasticsearch import AsyncElasticsearch
 import pytest_asyncio
 from elasticsearch.helpers import async_bulk
+from redis.asyncio import Redis
 
 from .settings import test_settings
 
@@ -26,6 +27,14 @@ async def es_client():
     await es_client.close()
 
 
+@pytest_asyncio.fixture(name='redis_client', scope='session')
+async def redis_client():
+    """Фикстура для единоразового создания клиента Elasticsearch"""
+    redis_client = Redis(host=test_settings.redis_settings.host, port=test_settings.redis_settings.port)
+    yield redis_client
+    await redis_client.aclose()
+
+
 @pytest_asyncio.fixture()
 async def aiohttp_session():
     """Фикстура для создания одного экземпляра aiohttp.ClientSession  в рамках функции-теста."""
@@ -45,17 +54,41 @@ async def es_data():
         'genres': [{'uuid': str(uuid.uuid4()), 'name': 'Action'}, {'uuid': str(uuid.uuid4()), 'name': 'Sci-Fi'}],
         'directors': [{'uuid': str(uuid.uuid4()), 'full_name': 'Stan'}],
         'actors': [
-            {'uuid': 'ef86b8ff-3c82-4d31-ad8e-72b69f4e3f95', 'full_name': 'Ann'},
-            {'uuid': 'fb111f22-121e-44a7-b78f-b19191810fbf', 'full_name': 'Bob'}
+            {'uuid': str(uuid.uuid4()), 'full_name': 'Ann'},
+            {'uuid': str(uuid.uuid4()), 'full_name': 'Bob'}
         ],
         'writers': [
-            {'uuid': 'caf76c67-c0fe-477e-8766-3ab3ff2574b5', 'full_name': 'Ben'},
-            {'uuid': 'b45bd7bc-2e16-46d5-b125-983d356768c6', 'full_name': 'Howard'}
+            {'uuid': str(uuid.uuid4()), 'full_name': 'Ben'},
+            {'uuid': str(uuid.uuid4()), 'full_name': 'Howard'}
         ],
         'directors_names': ['Stan'],
         'actors_names': ['Ann', 'Bob'],
         'writers_names': ['Ben', 'Howard']
-    } for _ in range(60)]
+    } for _ in range(60)] + [
+        {
+            'uuid': '608c4567-0b8a-49a0-88fb-82770c5b2f61',
+            'imdb_rating': 8.7,
+            'title': 'The movie',
+            'description': 'New Super Movie',
+            'genres': [
+                {'uuid': str(uuid.uuid4()), 'name': 'Action'},
+                {'uuid': str(uuid.uuid4()), 'name': 'Sci-Fi'},
+                {'uuid': '2fec4f4f-7f84-475c-ad28-791ce135bd2e', 'name': 'TestGenre'}
+            ],
+            'directors': [{'uuid': str(uuid.uuid4()), 'full_name': 'Stan'}],
+            'actors': [
+                {'uuid': str(uuid.uuid4()), 'full_name': 'Ann'},
+                {'uuid': str(uuid.uuid4()), 'full_name': 'Bob'}
+            ],
+            'writers': [
+                {'uuid': str(uuid.uuid4()), 'full_name': 'Ben'},
+                {'uuid': str(uuid.uuid4()), 'full_name': 'Howard'}
+            ],
+            'directors_names': ['Stan'],
+            'actors_names': ['Ann', 'Bob'],
+            'writers_names': ['Ben', 'Howard']
+        }
+    ]
 
     bulk_query: list[dict] = []
     for row in es_data:
@@ -85,7 +118,9 @@ async def es_write_data(es_client):
 @pytest_asyncio.fixture(name='make_get_request')
 async def make_get_request(aiohttp_session):
     """Фикстура для выполнения GET-запросов к API"""
-    async def inner(field: str, endpoint: str, query_data):
+    async def inner(field: str, endpoint: str, query_data=None):
+        if query_data is None:
+            query_data = {}
         url = test_settings.fastapi_settings.get_host() + '/api/v1' + field + endpoint + "/"
         async with aiohttp_session.get(url, params=query_data) as response:
             body = await response.json()

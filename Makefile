@@ -29,3 +29,6 @@ docker-api:
 
 tests:
 	@docker-compose -f docker-compose.test.yml up tests --build
+
+tests-restart:
+	@docker-compose -f docker-compose.test.yml restart tests

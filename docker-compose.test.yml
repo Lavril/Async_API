@@ -74,7 +74,7 @@ services:
       pip install -r /tests/functional/requirements.txt
       && python /tests/functional/utils/wait_for_es.py
       && python /tests/functional/utils/wait_for_redis.py
-      && cd /tests/functional && pytest src/"
+      && pytest /tests/functional"
     volumes:
       - ./tests:/tests
     env_file:
