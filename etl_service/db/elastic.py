@@ -3,9 +3,22 @@ import logging
 from typing import Any, Generator
 
 import elasticsearch
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, ConnectionError as ESConnectionError
 
 from core.backoff import backoff
+
+#вынесем создание клиента отдельно
+class ElasticClientFactory:
+    """Create Elasticsearch client with backoff."""
+    def __init__(self, dsn: str):
+        self.dsn = dsn
+
+    @backoff(ESConnectionError)
+    def create(self) -> Elasticsearch:
+        client = Elasticsearch(self.dsn)
+        if not client.ping():
+            raise ESConnectionError("Elasticsearch don't response")
+        return client
 
 
 class ElasticConnector:
@@ -14,14 +27,6 @@ class ElasticConnector:
     def __init__(self, dsn: str):
         self.dsn = dsn
         self.logger = logging.getLogger(__name__)
-
-    @backoff(elasticsearch.ConnectionError)
-    def _create_client(self) -> Elasticsearch:
-        """Create Elasticsearch client with backoff."""
-        client = Elasticsearch(self.dsn)
-        if not client.ping():
-            raise elasticsearch.ConnectionError("Elasticsearch don't response")
-        return client
 
     @contextmanager
     def connect(self) -> Generator[Elasticsearch, Any, None]:

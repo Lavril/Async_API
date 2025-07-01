@@ -28,6 +28,8 @@ app = FastAPI(
     version="1.0.0",
     # Адрес документации в красивом интерфейсе
     docs_url='/api/openapi',
+    # Адрес документации в ReDoc
+    redoc_url="/api/redoc",
     # Адрес документации в формате OpenAPI
     openapi_url='/api/openapi.json',
     # Можно сразу сделать небольшую оптимизацию сервиса
