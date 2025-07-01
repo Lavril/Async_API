@@ -8,29 +8,30 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
+from services.base import Service, GetMixin
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
-class GenreService:
+class GenreService(GetMixin, Service):
     """Бизнес-логика по работе с жанрами."""
 
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, genre_id: str) -> Genre | None:
+    async def get_by_id(self, item_id: str) -> Genre | None:
         """
         Возвращает объект жанра.
 
-        :param genre_id: ID жанра
+        :param item_id: ID жанра
         :return: Модель жанра
         """
         # Пытаемся получить данные из кеша
-        genre = await self._genre_from_cache(genre_id)
+        genre = await self._genre_from_cache(item_id)
         if not genre:
             # Если жанра нет в кеше, ищем его в Elasticsearch
-            genre = await self._get_genre_from_elastic(genre_id)
+            genre = await self._get_genre_from_elastic(item_id)
             if not genre:
                 return None
             # Сохраняем жанр в кеш

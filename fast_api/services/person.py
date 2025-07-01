@@ -9,27 +9,28 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Person
 from models.film import FilmShort
+from services.base import Service, SearchMixin
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
-class PersonService:
+class PersonService(SearchMixin, Service):
     """Бизнес-логика по работе с фильмами."""
 
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, person_id: str) -> Person | None:
+    async def get_by_id(self, item_id: str) -> Person | None:
         """
         Возвращает объект Person.
 
-        :param person_id: ID персоны
+        :param item_id: ID персоны
         :return: Модель персоны
         """
-        person = await self._person_from_cache(person_id)
+        person = await self._person_from_cache(item_id)
         if not person:
-            person = await self._get_person_from_elastic(person_id)
+            person = await self._get_person_from_elastic(item_id)
             if not person:
                 return None
             await self._put_person_to_cache(person)

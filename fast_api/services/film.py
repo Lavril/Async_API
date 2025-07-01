@@ -9,28 +9,29 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.film import Film
+from services.base import Service, GetMixin, SearchMixin
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
-class FilmService:
+class FilmService(SearchMixin, GetMixin, Service):
     """Бизнес-логика по работе с фильмами."""
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, film_id: str) -> Film | None:
+    async def get_by_id(self, item_id: str) -> Film | None:
         """
         Возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе.
 
-        :param film_id: ID кинопроизведения
+        :param item_id: ID кинопроизведения
         :return: Модель кинопроизведения
         """
         # Пытаемся получить данные из кеша, потому что оно работает быстрее
-        film = await self._film_from_cache(film_id)
+        film = await self._film_from_cache(item_id)
         if not film:
             # Если фильма нет в кеше, то ищем его в Elasticsearch
-            film = await self._get_film_from_elastic(film_id)
+            film = await self._get_film_from_elastic(item_id)
             if not film:
                 # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
                 return None
