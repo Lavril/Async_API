@@ -49,6 +49,7 @@ from tests.functional.settings import test_settings
 )
 @pytest.mark.asyncio
 async def test_search_films(make_get_request, es_write_data, es_data_movies: list[dict], query_data: dict, expected_answer: dict):
+    """Тест поиска фильма"""
     await es_write_data(es_data_movies, 'movies')
     response = await make_get_request('/films', '/search', query_data)
     assert response['status'] == expected_answer['status']
@@ -98,6 +99,7 @@ async def test_search_films(make_get_request, es_write_data, es_data_movies: lis
 )
 @pytest.mark.asyncio
 async def test_search_persons(make_get_request, es_write_data, es_data_persons: list[dict], query_data: dict, expected_answer: dict):
+    """Тест поиска персоны"""
     await es_write_data(es_data_persons, 'persons')
     response = await make_get_request('/persons', '/search', query_data)
     assert response['status'] == expected_answer['status']
