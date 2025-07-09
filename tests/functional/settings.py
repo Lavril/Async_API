@@ -153,7 +153,7 @@ class ElasticSchemas:
 
 class TestSettings(BaseSettings):
     # es_host: str = Field('http://127.0.0.1:9200', env='ELASTIC_HOST')
-    es_index: str = "movies"
+    # es_index: str = "movies"
     # es_id_field: str = ...
 
     # redis_host: str = ...
@@ -165,9 +165,8 @@ class TestSettings(BaseSettings):
 
     elastic_mappings: ElasticSchemas = ElasticSchemas()
 
-    @property
-    def es_index_mapping(self) -> dict:
-        return self.elastic_mappings.get_schema(self.es_index)
+    def es_index_mapping(self, es_index) -> dict:
+        return self.elastic_mappings.get_schema(es_index)
 
 
 test_settings = TestSettings()
