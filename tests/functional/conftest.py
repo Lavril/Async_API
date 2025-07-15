@@ -43,8 +43,8 @@ async def aiohttp_session():
     await session.close()
 
 
-@pytest_asyncio.fixture(name='es_data', scope='session')
-async def es_data():
+@pytest_asyncio.fixture(name='es_data_movies', scope='session')
+async def es_data_movies():
     """Фикстура для подготовки тестовых данных для Elasticsearch"""
     es_data = [{
         'uuid': str(uuid.uuid4()),
@@ -99,13 +99,32 @@ async def es_data():
     return bulk_query
 
 
+@pytest_asyncio.fixture(name='es_data_persons', scope='session')
+async def es_data_persons():
+    """Фикстура для подготовки тестовых данных для Elasticsearch"""
+
+    es_data = [{
+        'uuid': str(uuid.uuid4()),
+        'full_name': f'{person} {str(uuid.uuid4())}'
+    } for person in ['Ann', 'Bob', 'Ben', 'Howard', 'Stan'] * 10]
+
+    bulk_query: list[dict] = []
+    for row in es_data:
+        data = {'_index': 'persons', '_id': row['uuid']}
+        data.update({'_source': row})
+        bulk_query.append(data)
+
+    return bulk_query
+
+
 @pytest_asyncio.fixture(name='es_write_data')
 async def es_write_data(es_client):
     """Фикстура для записи тестовых данных в Elasticsearch"""
-    async def inner(data, MAPPING_MOVIES=None):
-        if await es_client.indices.exists(index=test_settings.es_index):
-            await es_client.indices.delete(index=test_settings.es_index)
-        await es_client.indices.create(index=test_settings.es_index, **MAPPING_MOVIES)
+    async def inner(data, es_index):
+        if await es_client.indices.exists(index=es_index):
+            await es_client.indices.delete(index=es_index)
+        await es_client.indices.create(index=es_index,
+                                       **test_settings.es_index_mapping(es_index))
 
         updated, errors = await async_bulk(client=es_client, actions=data)
         await es_client.indices.refresh()
