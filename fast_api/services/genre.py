@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
-from services.base import Service, GetMixin
+from services.base import Service, GetMixin, Cache
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -16,8 +16,8 @@ GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 class GenreService(GetMixin, Service):
     """Бизнес-логика по работе с жанрами."""
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, item_id: str) -> Genre | None:
@@ -133,8 +133,8 @@ class GenreService(GetMixin, Service):
         return Genre(**doc['_source'])
 
     async def _genre_from_cache(self, genre_id: str) -> Genre | None:
-        """Поиск жанра по ID в кэше redis"""
-        data = await self.redis.get(f"genre_{genre_id}")
+        """Поиск жанра по ID в кэше"""
+        data = await self.cache.get(f"genre_{genre_id}")
         if not data:
             return None
 
@@ -142,8 +142,8 @@ class GenreService(GetMixin, Service):
         return genre
 
     async def _put_genre_to_cache(self, genre: Genre):
-        """Сохранение жанра в кэш redis"""
-        await self.redis.set(f"genre_{genre.uuid}", genre.json(), ex=GENRE_CACHE_EXPIRE_IN_SECONDS)
+        """Сохранение жанра в кэш"""
+        await self.cache.set(f"genre_{genre.uuid}", genre.json(), ex=GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def _get_genres_cache_key(self, page: int, size: int) -> str:
         """Генерация ключа кэша"""
@@ -151,14 +151,14 @@ class GenreService(GetMixin, Service):
 
     async def _genres_from_cache(self, cache_key: str) -> list[Genre] | None:
         """Получение жанров из кэша"""
-        data = await self.redis.get(cache_key)
+        data = await self.cache.get(cache_key)
         if not data:
             return None
         return [Genre(**item) for item in json.loads(data)]
 
     async def _put_genres_to_cache(self, cache_key: str, genres: list[Genre]):
-        """Сохранение жанров в кэш redis"""
-        await self.redis.set(
+        """Сохранение жанров в кэш"""
+        await self.cache.set(
             cache_key,
             json.dumps([genre.dict() for genre in genres]),
             ex=GENRE_CACHE_EXPIRE_IN_SECONDS
@@ -167,8 +167,8 @@ class GenreService(GetMixin, Service):
 
 @lru_cache()
 def get_genre_service(
-        redis: Redis = Depends(get_redis),
+        cache: Redis = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
     """Провайдер GenreService"""
-    return GenreService(redis, elastic)
+    return GenreService(cache, elastic)

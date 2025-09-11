@@ -9,7 +9,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Person
 from models.film import FilmShort
-from services.base import Service, SearchMixin
+from services.base import Service, SearchMixin, Cache
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -17,8 +17,8 @@ PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 class PersonService(SearchMixin, Service):
     """Бизнес-логика по работе с фильмами."""
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, item_id: str) -> Person | None:
@@ -150,8 +150,8 @@ class PersonService(SearchMixin, Service):
         return films
 
     async def _person_from_cache(self, person_id: str) -> Person | None:
-        """Поиск person по ID в кэше redis"""
-        data = await self.redis.get(f"person_{person_id}")
+        """Поиск person по ID в кэше"""
+        data = await self.cache.get(f"person_{person_id}")
         if not data:
             return None
 
@@ -159,8 +159,8 @@ class PersonService(SearchMixin, Service):
         return person
 
     async def _films_from_cache(self, person_id: str) -> list[FilmShort] | None:
-        """Поиск films по ID в кэше redis"""
-        data = await self.redis.get(f"films_person_{person_id}")
+        """Поиск films по ID в кэше"""
+        data = await self.cache.get(f"films_person_{person_id}")
         if not data:
             return None
 
@@ -169,19 +169,19 @@ class PersonService(SearchMixin, Service):
         return films
 
     async def _put_person_to_cache(self, person: Person):
-        """Сохранение person в кэш redis"""
-        await self.redis.set(f"person_{person.uuid}", person.json(), ex=PERSON_CACHE_EXPIRE_IN_SECONDS)
+        """Сохранение person в кэш"""
+        await self.cache.set(f"person_{person.uuid}", person.json(), ex=PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_films_person_to_cache(self, person_id: str, films: list[FilmShort]):
-        """Сохранение person films в кэш redis"""
+        """Сохранение person films в кэш"""
         films_json = json.dumps([film.dict() for film in films])
-        await self.redis.set(f"films_person_{person_id}", films_json, ex=PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(f"films_person_{person_id}", films_json, ex=PERSON_CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()
 def get_person_service(
-        redis: Redis = Depends(get_redis),
+        cache: Redis = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     """Провайдер PersonService"""
-    return PersonService(redis, elastic)
+    return PersonService(cache, elastic)

@@ -9,15 +9,15 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.film import Film
-from services.base import Service, GetMixin, SearchMixin
+from services.base import Service, GetMixin, SearchMixin, Cache
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
 class FilmService(SearchMixin, GetMixin, Service):
     """Бизнес-логика по работе с фильмами."""
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, item_id: str) -> Film | None:
@@ -170,8 +170,8 @@ class FilmService(SearchMixin, GetMixin, Service):
         return Film(**doc['_source'])
 
     async def _film_from_cache(self, film_id: str) -> Film | None:
-        """Поиск фильма по ID в кэше redis"""
-        data = await self.redis.get(f"film_{film_id}")
+        """Поиск фильма по ID в кэше"""
+        data = await self.cache.get(f"film_{film_id}")
         if not data:
             return None
 
@@ -179,8 +179,8 @@ class FilmService(SearchMixin, GetMixin, Service):
         return film
 
     async def _put_film_to_cache(self, film: Film):
-        """Сохранение фильма в кэш redis"""
-        await self.redis.set(f"film_{film.uuid}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        """Сохранение фильма в кэш"""
+        await self.cache.set(f"film_{film.uuid}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _get_films_cache_key(self, sort: str, genre: UUID | None, page: int, size: int) -> str:
         """Генерация ключа кэша"""
@@ -189,20 +189,22 @@ class FilmService(SearchMixin, GetMixin, Service):
 
     async def _films_from_cache(self, cache_key: str) -> list[Film] | None:
         """Получение фильмов из кэша"""
-        data = await self.redis.get(cache_key)
+        data = await self.cache.get(cache_key)
         if not data:
             return None
         return [Film.parse_raw(item) for item in json.loads(data)]
 
     async def _put_films_to_cache(self, cache_key: str, films: list[Film]):
-        """Сохранение фильмов в кэш redis"""
-        await self.redis.set(cache_key, json.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
+        """Сохранение фильмов в кэш"""
+        await self.cache.set(cache_key, json.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()
 def get_film_service(
-        redis: Redis = Depends(get_redis),
+        cache: Redis = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
     """Провайдер FilmService"""
-    return FilmService(redis, elastic)
+    return FilmService(cache, elastic)
+
+redis.set()
