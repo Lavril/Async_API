@@ -24,7 +24,7 @@ def load_from_postgres_to_elastic():
     state_manager = StateManager(JsonFileStorage())
     postgres = PostgresConnector(settings.postgres_settings.get_dsn())
     es_factory = ElasticClientFactory(settings.elastic_settings.get_host())
-    elastic   = ElasticConnector(es_factory)
+    elastic = ElasticConnector(es_factory)
     with postgres.connect() as pg_connection, elastic.connect() as es_client:
         extractor = PostgresExtractor(
             state_manager,

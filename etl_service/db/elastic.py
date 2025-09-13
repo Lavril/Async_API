@@ -24,8 +24,8 @@ class ElasticClientFactory:
 class ElasticConnector:
     """Elasticsearch context manager connector."""
 
-    def __init__(self, dsn: str):
-        self.dsn = dsn
+    def __init__(self, elastic_factory: ElasticClientFactory):
+        self.elastic_factory = elastic_factory
         self.logger = logging.getLogger(__name__)
 
     @contextmanager
@@ -33,7 +33,7 @@ class ElasticConnector:
         """Elasticsearch context manager."""
         client = None
         try:
-            client = self._create_client()
+            client = self.elastic_factory.create()
             self.logger.info('Successful connection to Elasticsearch')
             yield client
         except elasticsearch.ConnectionError:
