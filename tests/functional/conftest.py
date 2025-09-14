@@ -78,14 +78,15 @@ async def es_data_movies():
             'directors': [{'uuid': str(uuid.uuid4()), 'full_name': 'Stan'}],
             'actors': [
                 {'uuid': str(uuid.uuid4()), 'full_name': 'Ann'},
-                {'uuid': str(uuid.uuid4()), 'full_name': 'Bob'}
+                {'uuid': str(uuid.uuid4()), 'full_name': 'Bob'},
+                {'uuid': '88c78458-54c8-455f-846e-82734dc1967f', 'full_name': 'Maxim'}
             ],
             'writers': [
                 {'uuid': str(uuid.uuid4()), 'full_name': 'Ben'},
                 {'uuid': str(uuid.uuid4()), 'full_name': 'Howard'}
             ],
             'directors_names': ['Stan'],
-            'actors_names': ['Ann', 'Bob'],
+            'actors_names': ['Ann', 'Bob', 'Maxim'],
             'writers_names': ['Ben', 'Howard']
         }
     ]
@@ -107,6 +108,13 @@ async def es_data_persons():
         'uuid': str(uuid.uuid4()),
         'full_name': f'{person} {str(uuid.uuid4())}'
     } for person in ['Ann', 'Bob', 'Ben', 'Howard', 'Stan'] * 10]
+
+    es_data.append(
+        {
+            'uuid': '3a6ed55e-6aef-4cd2-932c-808495182425',
+            'full_name': 'James'
+        }
+    )
 
     bulk_query: list[dict] = []
     for row in es_data:
