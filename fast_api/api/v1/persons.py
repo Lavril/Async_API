@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
@@ -20,6 +21,13 @@ async def person_details(
         person_service: PersonService = Depends(get_person_service)
 ) -> PersonFullResponse:
     """Получение информацию о person по идентификатору"""
+    try:
+        UUID(person_id, version=4)
+    except ValueError:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid person ID format. Must be a valid UUID v4."
+        )
     person = await person_service.get_by_id(person_id)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='person not found')
@@ -41,6 +49,13 @@ async def list_films(
         person_id: str = Path(..., example="5b4bf1bc-3397-4e83-9b17-8b10c6544ed1", description="UUID персоны"),
         person_service: PersonService = Depends(get_person_service)
 ) -> list[PersonFilms]:
+    try:
+        UUID(person_id, version=4)
+    except ValueError:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid person ID format. Must be a valid UUID v4."
+        )
 
     films = await person_service.get_film_by_id(person_id)
 
