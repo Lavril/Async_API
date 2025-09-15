@@ -206,5 +206,3 @@ def get_film_service(
 ) -> FilmService:
     """Провайдер FilmService"""
     return FilmService(cache, elastic)
-
-redis.set()

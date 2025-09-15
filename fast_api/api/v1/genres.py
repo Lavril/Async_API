@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
@@ -20,6 +21,14 @@ async def genre_details(
         genre_service: GenreService = Depends(get_genre_service)
 ) -> Genre:
     """Получение информацию о жанре по идентификатору"""
+    try:
+        UUID(genre_id, version=4)
+    except ValueError:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid genre ID format. Must be a valid UUID v4."
+        )
+
     genre = await genre_service.get_by_id(genre_id)
     if not genre:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='genre not found')
