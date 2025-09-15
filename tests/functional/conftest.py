@@ -45,7 +45,7 @@ async def aiohttp_session():
 
 @pytest_asyncio.fixture(name='es_data_movies', scope='session')
 async def es_data_movies():
-    """Фикстура для подготовки тестовых данных для Elasticsearch"""
+    """Фикстура для подготовки тестовых данных для Elasticsearch по фильмам"""
     es_data = [{
         'uuid': str(uuid.uuid4()),
         'imdb_rating': 8.5,
@@ -100,9 +100,28 @@ async def es_data_movies():
     return bulk_query
 
 
+@pytest_asyncio.fixture(name='es_data_genres', scope='session')
+async def es_data_genres():
+    """Фикстура для подготовки тестовых данных для Elasticsearch по жанрам"""
+
+    es_data = [
+        {'uuid': str(uuid.uuid4()), 'name': 'Action'},
+        {'uuid': str(uuid.uuid4()), 'name': 'Sci-Fi'},
+        {'uuid': '2fec4f4f-7f84-475c-ad28-791ce135bd2e', 'name': 'TestGenre'},
+    ]
+
+    bulk_query: list[dict] = []
+    for row in es_data:
+        data = {'_index': 'genres', '_id': row['uuid']}
+        data.update({'_source': row})
+        bulk_query.append(data)
+
+    return bulk_query
+
+
 @pytest_asyncio.fixture(name='es_data_persons', scope='session')
 async def es_data_persons():
-    """Фикстура для подготовки тестовых данных для Elasticsearch"""
+    """Фикстура для подготовки тестовых данных для Elasticsearch по персонам"""
 
     es_data = [{
         'uuid': str(uuid.uuid4()),
