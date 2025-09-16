@@ -9,16 +9,16 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.film import Film
-from services.base import Service, GetMixin, SearchMixin, Cache
+from services.base import Service, GetMixin, SearchMixin, Cache, Database
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
 class FilmService(SearchMixin, GetMixin, Service):
     """Бизнес-логика по работе с фильмами."""
-    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: Cache, database: Database):
         self.cache = cache
-        self.elastic = elastic
+        self.database = database
 
     async def get_by_id(self, item_id: str) -> Film | None:
         """
@@ -30,10 +30,10 @@ class FilmService(SearchMixin, GetMixin, Service):
         # Пытаемся получить данные из кеша, потому что оно работает быстрее
         film = await self._film_from_cache(item_id)
         if not film:
-            # Если фильма нет в кеше, то ищем его в Elasticsearch
-            film = await self._get_film_from_elastic(item_id)
+            # Если фильма нет в кеше, то ищем его в базе данных
+            film = await self._get_film_from_database(item_id)
             if not film:
-                # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
+                # Если он отсутствует в базе данных, значит, фильма вообще нет
                 return None
             # Сохраняем фильм в кеш
             await self._put_film_to_cache(film)
@@ -78,7 +78,7 @@ class FilmService(SearchMixin, GetMixin, Service):
         }
 
         try:
-            doc = await self.elastic.search(
+            doc = await self.database.search(
                 index="movies",
                 body=query
             )
@@ -103,7 +103,7 @@ class FilmService(SearchMixin, GetMixin, Service):
         if cached_films:
             return cached_films
 
-        films = await self._get_films_from_elastic(sort, genre, page, size)
+        films = await self._get_films_from_database(sort, genre, page, size)
         if not films:
             return None
 
@@ -112,14 +112,14 @@ class FilmService(SearchMixin, GetMixin, Service):
 
         return films
 
-    async def _get_films_from_elastic(
+    async def _get_films_from_database(
             self,
             sort: str,
             genre: UUID | None,
             page: int,
             size: int
     ) -> list[Film] | None:
-        """Получение фильмов из elasticsearch по заданным критериям"""
+        """Получение фильмов из базы данных по заданным критериям"""
         # Настройки сортировки
         sort_order = "desc" if sort.startswith("-") else "asc"
         sort_field = sort.lstrip("-")
@@ -150,7 +150,7 @@ class FilmService(SearchMixin, GetMixin, Service):
             })
 
         try:
-            doc = await self.elastic.search(
+            doc = await self.database.search(
                 index="movies",
                 body=query
             )
@@ -161,10 +161,10 @@ class FilmService(SearchMixin, GetMixin, Service):
 
         return [Film(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_film_from_elastic(self, film_id: str) -> Film | None:
-        """Получение фильма по ID из elasticsearch"""
+    async def _get_film_from_database(self, film_id: str) -> Film | None:
+        """Получение фильма по ID из базы данных"""
         try:
-            doc = await self.elastic.get(index='movies', id=film_id)
+            doc = await self.database.get(index='movies', id=film_id)
         except NotFoundError:
             return None
         return Film(**doc['_source'])
@@ -202,7 +202,7 @@ class FilmService(SearchMixin, GetMixin, Service):
 @lru_cache()
 def get_film_service(
         cache: Redis = Depends(get_redis),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+        database: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
     """Провайдер FilmService"""
-    return FilmService(cache, elastic)
+    return FilmService(cache, database)

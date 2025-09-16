@@ -37,3 +37,14 @@ class Cache(ABC):
             value: bytes | memoryview | str | int | float,
             ex: int | timedelta | None = None) -> Awaitable:
         pass
+
+
+class Database(ABC):
+    """Абстрактный класс для работы с базой данных."""
+    @abstractmethod
+    async def search(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    async def get(self, *args, **kwargs):
+        pass
