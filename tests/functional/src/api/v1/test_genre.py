@@ -2,8 +2,6 @@ from http import HTTPStatus
 
 import pytest
 
-from tests.functional.settings import test_settings
-
 
 @pytest.mark.parametrize(
     'input_data, expected_answer',
