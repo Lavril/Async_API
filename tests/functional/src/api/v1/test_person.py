@@ -27,7 +27,9 @@ async def test_get_person_details(es_write_data, es_data_persons, make_get_reque
     """Тест получения информации о персоне."""
     await es_write_data(es_data_persons, 'persons')
     person_id = input_data['person_id']
+
     response = await make_get_request('/persons', f'/{person_id}')
+
     assert response['status'] == expected_answer['status']
     if response['status'] == HTTPStatus.OK:
         assert response['body']["uuid"] == person_id
@@ -62,7 +64,9 @@ async def test_person_films(es_write_data, es_data_movies, make_get_request, inp
     """Тест получения списка фильмов"""
     await es_write_data(es_data_movies, 'movies')
     person_id = input_data['person_id']
+
     response = await make_get_request('/persons', f'/{person_id}/films')
+
     assert response['status'] == expected_answer['status']
     if response['status'] == HTTPStatus.OK:
         film_response = response['body'][0]
