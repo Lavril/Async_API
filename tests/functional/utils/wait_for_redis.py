@@ -1,17 +1,28 @@
-import os
-import time
+from os import path
+import sys
+
 import redis
 
-ELASTIC_HOST = os.getenv('REDIS_HOST', 'redis')
-ELASTIC_PORT = os.getenv('REDIS_PORT', '6379')
+from backoff import backoff
+# Добавление пути к файлу настроек, т.к. запускается как скрипт, а не модуль
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from settings import test_settings
+
+
+@backoff(redis.ConnectionError)
+def ping_redis(client):
+    if not client.ping():
+        raise redis.ConnectionError("Redis don't response")
+    return "Redis is available."
+
 
 if __name__ == '__main__':
-    # TODO: заменить hosts на переменную окружения
-    redis_client = redis.Redis(host=ELASTIC_HOST, port=ELASTIC_PORT)
-    while True:
-        try:
-            if redis_client.ping():
-                print("Redis is ready.")
-                break
-        except redis.ConnectionError:
-            time.sleep(1)
+    redis_client = redis.Redis(
+        host=test_settings.redis_settings.host,
+        port=test_settings.redis_settings.port
+    )
+    try:
+        result = ping_redis(redis_client)
+        print(result)
+    except (redis.ConnectionError, TimeoutError) as e:
+        print(e)
