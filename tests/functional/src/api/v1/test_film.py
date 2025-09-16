@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 
 from tests.functional.settings import test_settings
@@ -8,15 +10,15 @@ from tests.functional.settings import test_settings
     [
         (
             {'film_id': '608c4567-0b8a-49a0-88fb-82770c5b2f61'},
-            {'status': 200, 'title': 'The movie'}
+            {'status': HTTPStatus.OK, 'title': 'The movie'}
         ),
         (
             {'film_id': '00000000-0000-0000-0000-000000000000'},
-            {'status': 404, 'detail': "film not found"}
+            {'status': HTTPStatus.NOT_FOUND, 'detail': "film not found"}
         ),
         (
             {'film_id': '00000000-0000-0000-0000-0000000000000'},
-            {'status': 400, 'detail': "Invalid film ID format. Must be a valid UUID v4."}
+            {'status': HTTPStatus.BAD_REQUEST, 'detail': "Invalid film ID format. Must be a valid UUID v4."}
         )
     ]
 )
@@ -27,7 +29,7 @@ async def test_get_film_details(es_write_data, es_data_movies, make_get_request,
     film_id = input_data['film_id']
     response = await make_get_request('/films', f'/{film_id}')
     assert response['status'] == expected_answer['status']
-    if response['status'] == 200:
+    if response['status'] == HTTPStatus.OK:
         assert response['body']["uuid"] == film_id
         assert response['body']["title"] == expected_answer['title']
     else:
@@ -39,43 +41,43 @@ async def test_get_film_details(es_write_data, es_data_movies, make_get_request,
     [
         (
             {},
-            {'status': 200, "length": 50}
+            {'status': HTTPStatus.OK, "length": 50}
         ),
         (
             {"genre": '2fec4f4f-7f84-475c-ad28-791ce135bd2e'},
-            {'status': 200, "length": 1}
+            {'status': HTTPStatus.OK, "length": 1}
         ),
         (
             {"genre": '00000000-0000-0000-0000-000000000000'},
-            {'status': 404, "length": 1}
+            {'status': HTTPStatus.NOT_FOUND, "length": 1}
         ),
         (
             {"genre": '00000000-0000-0000-0000-0000000000000'},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"page": 0},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"page": 10000},
-            {'status': 404, "length": 1}
+            {'status': HTTPStatus.NOT_FOUND, "length": 1}
         ),
         (
             {"size": 0},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"size": 2},
-            {'status': 200, "length": 2}
+            {'status': HTTPStatus.OK, "length": 2}
         ),
         (
             {"size": 101},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"sort": "random"},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         )
     ]
 )
