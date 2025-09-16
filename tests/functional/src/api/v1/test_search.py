@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 
 from tests.functional.settings import test_settings
@@ -8,39 +10,39 @@ from tests.functional.settings import test_settings
     [
         (
             {'query': 'The Star'},
-            {'status': 200, 'length': 50}
+            {'status': HTTPStatus.OK, 'length': 50}
         ),
         (
             {'query': 'The Star', 'size': 2},
-            {'status': 200, 'length': 2}
+            {'status': HTTPStatus.OK, 'length': 2}
         ),
         (
             {'query': 'The Star', 'size': 62},
-            {'status': 200, 'length': 60}
+            {'status': HTTPStatus.OK, 'length': 60}
         ),
         (
             {'query': 'The Star', 'size': 101},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'query': 'Mashed potato'},
-            {'status': 404, 'length': 1}
+            {'status': HTTPStatus.NOT_FOUND, 'length': 1}
         ),
         (
             {'query': ''},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'page': 0},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'size': 0},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
     ]
 )
@@ -58,39 +60,39 @@ async def test_search_films(make_get_request, es_write_data, es_data_movies: lis
     [
         (
             {'query': 'Stan'},
-            {'status': 200, 'length': 10}
+            {'status': HTTPStatus.OK, 'length': 10}
         ),
         (
             {'query': 'Stan', 'size': 2},
-            {'status': 200, 'length': 2}
+            {'status': HTTPStatus.OK, 'length': 2}
         ),
         (
             {'query': 'Stan', 'size': 12},
-            {'status': 200, 'length': 10}
+            {'status': HTTPStatus.OK, 'length': 10}
         ),
         (
             {'query': 'Stan', 'size': 101},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'query': 'Ron'},
-            {'status': 404, 'length': 1}
+            {'status': HTTPStatus.NOT_FOUND, 'length': 1}
         ),
         (
             {'query': ''},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'page': 0},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
         (
             {'size': 0},
-            {'status': 422, 'length': 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, 'length': 1}
         ),
     ]
 )

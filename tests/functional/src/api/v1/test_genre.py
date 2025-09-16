@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 
 from tests.functional.settings import test_settings
@@ -8,15 +10,15 @@ from tests.functional.settings import test_settings
     [
         (
             {'genre_id': '2fec4f4f-7f84-475c-ad28-791ce135bd2e'},
-            {'status': 200, 'name': 'TestGenre'}
+            {'status': HTTPStatus.OK, 'name': 'TestGenre'}
         ),
         (
             {'genre_id': '00000000-0000-0000-0000-000000000000'},
-            {'status': 404, 'detail': "genre not found"}
+            {'status': HTTPStatus.NOT_FOUND, 'detail': "genre not found"}
         ),
         (
             {'genre_id': '00000000-0000-0000-0000-0000000000000'},
-            {'status': 400, 'detail': "Invalid genre ID format. Must be a valid UUID v4."}
+            {'status': HTTPStatus.BAD_REQUEST, 'detail': "Invalid genre ID format. Must be a valid UUID v4."}
         )
     ]
 )
@@ -27,7 +29,7 @@ async def test_get_genre_details(es_write_data, es_data_genres, make_get_request
     genre_id = input_data['genre_id']
     response = await make_get_request('/genres', f'/{genre_id}')
     assert response['status'] == expected_answer['status']
-    if response['status'] == 200:
+    if response['status'] == HTTPStatus.OK:
         assert response['body']["uuid"] == genre_id
         assert response['body']["name"] == expected_answer['name']
     else:
@@ -39,27 +41,27 @@ async def test_get_genre_details(es_write_data, es_data_genres, make_get_request
     [
         (
             {},
-            {'status': 200, "length": 3}
+            {'status': HTTPStatus.OK, "length": 3}
         ),
         (
             {"page": 0},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"page": 10000},
-            {'status': 404, "length": 1}
+            {'status': HTTPStatus.NOT_FOUND, "length": 1}
         ),
         (
             {"size": 0},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
         (
             {"size": 2},
-            {'status': 200, "length": 2}
+            {'status': HTTPStatus.OK, "length": 2}
         ),
         (
             {"size": 101},
-            {'status': 422, "length": 1}
+            {'status': HTTPStatus.UNPROCESSABLE_ENTITY, "length": 1}
         ),
     ]
 )
