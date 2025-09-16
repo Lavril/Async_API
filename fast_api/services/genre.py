@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
-from services.base import Service, GetMixin, Cache
+from services.base import Service, GetMixin, Cache, Database
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -16,9 +16,9 @@ GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 class GenreService(GetMixin, Service):
     """Бизнес-логика по работе с жанрами."""
 
-    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: Cache, database: Database):
         self.cache = cache
-        self.elastic = elastic
+        self.database = database
 
     async def get_by_id(self, item_id: str) -> Genre | None:
         """
@@ -30,8 +30,8 @@ class GenreService(GetMixin, Service):
         # Пытаемся получить данные из кеша
         genre = await self._genre_from_cache(item_id)
         if not genre:
-            # Если жанра нет в кеше, ищем его в Elasticsearch
-            genre = await self._get_genre_from_elastic(item_id)
+            # Если жанра нет в кеше, ищем его в базе данных
+            genre = await self._get_genre_from_database(item_id)
             if not genre:
                 return None
             # Сохраняем жанр в кеш
@@ -65,7 +65,7 @@ class GenreService(GetMixin, Service):
         }
 
         try:
-            doc = await self.elastic.search(
+            doc = await self.database.search(
                 index="genres",
                 body=query
             )
@@ -86,7 +86,7 @@ class GenreService(GetMixin, Service):
         if cached_genres:
             return cached_genres
 
-        genres = await self._get_genres_from_elastic(page, size)
+        genres = await self._get_genres_from_database(page, size)
         if not genres:
             return None
 
@@ -94,12 +94,12 @@ class GenreService(GetMixin, Service):
 
         return genres
 
-    async def _get_genres_from_elastic(
+    async def _get_genres_from_database(
             self,
             page: int,
             size: int
     ) -> list[Genre] | None:
-        """Получение жанров из elasticsearch по заданным критериям"""
+        """Получение жанров из базы данных по заданным критериям"""
 
         query = {
             "query": {
@@ -115,7 +115,7 @@ class GenreService(GetMixin, Service):
         }
 
         try:
-            doc = await self.elastic.search(
+            doc = await self.database.search(
                 index="genres",
                 body=query
             )
@@ -124,10 +124,10 @@ class GenreService(GetMixin, Service):
 
         return [Genre(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_genre_from_elastic(self, genre_id: str) -> Genre | None:
-        """Получение жанра по ID из elasticsearch"""
+    async def _get_genre_from_database(self, genre_id: str) -> Genre | None:
+        """Получение жанра по ID из базы данных"""
         try:
-            doc = await self.elastic.get(index='genres', id=genre_id)
+            doc = await self.database.get(index='genres', id=genre_id)
         except NotFoundError:
             return None
         return Genre(**doc['_source'])
@@ -168,7 +168,7 @@ class GenreService(GetMixin, Service):
 @lru_cache()
 def get_genre_service(
         cache: Redis = Depends(get_redis),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+        database: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
     """Провайдер GenreService"""
-    return GenreService(cache, elastic)
+    return GenreService(cache, database)

@@ -9,7 +9,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Person
 from models.film import FilmShort
-from services.base import Service, SearchMixin, Cache
+from services.base import Service, SearchMixin, Cache, Database
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -17,9 +17,9 @@ PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 class PersonService(SearchMixin, Service):
     """Бизнес-логика по работе с фильмами."""
 
-    def __init__(self, cache: Cache, elastic: AsyncElasticsearch):
+    def __init__(self, cache: Cache, database: Database):
         self.cache = cache
-        self.elastic = elastic
+        self.database = database
 
     async def get_by_id(self, item_id: str) -> Person | None:
         """
@@ -30,7 +30,7 @@ class PersonService(SearchMixin, Service):
         """
         person = await self._person_from_cache(item_id)
         if not person:
-            person = await self._get_person_from_elastic(item_id)
+            person = await self._get_person_from_database(item_id)
             if not person:
                 return None
             await self._put_person_to_cache(person)
@@ -73,7 +73,7 @@ class PersonService(SearchMixin, Service):
         }
 
         try:
-            doc = await self.elastic.search(
+            doc = await self.database.search(
                 index="persons",
                 body=query
             )
@@ -91,10 +91,10 @@ class PersonService(SearchMixin, Service):
             hit["_source"]["films"] = films
         return [Person(**hit["_source"]) for hit in doc["hits"]["hits"]]
 
-    async def _get_person_from_elastic(self, person_id: str) -> Person | None:
-        """Получение person по ID из Elasticsearch + его фильмы и роли"""
+    async def _get_person_from_database(self, person_id: str) -> Person | None:
+        """Получение person по ID из базы данных + его фильмы и роли"""
         try:
-            doc = await self.elastic.get(index='persons', id=person_id)
+            doc = await self.database.get(index='persons', id=person_id)
         except NotFoundError:
             return None
 
@@ -118,7 +118,7 @@ class PersonService(SearchMixin, Service):
         }
 
         try:
-            search_result = await self.elastic.search(
+            search_result = await self.database.search(
                 index="movies",
                 body=query,
                 size=1000
@@ -181,7 +181,7 @@ class PersonService(SearchMixin, Service):
 @lru_cache()
 def get_person_service(
         cache: Redis = Depends(get_redis),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+        database: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     """Провайдер PersonService"""
-    return PersonService(cache, elastic)
+    return PersonService(cache, database)
