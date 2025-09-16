@@ -1,16 +1,29 @@
-import os
-import time
+from os import path
+import sys
 
-from elasticsearch import Elasticsearch
+import elasticsearch
 
-ELASTIC_HOST = os.getenv('ELASTIC_HOST', 'elasticsearch')
-ELASTIC_PORT = os.getenv('ELASTIC_PORT', '9200')
+from backoff import backoff
+# Добавление пути к файлу настроек, т.к. запускается как скрипт, а не модуль
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from settings import test_settings
+
+
+@backoff(elasticsearch.ConnectionError)
+def ping_elastic(client):
+    if not client.ping():
+        raise elasticsearch.ConnectionError("Elasticsearch don't response")
+    return "Elastic is available."
+
 
 if __name__ == '__main__':
-    # TODO: заменить hosts на переменную окружения
-    es_client = Elasticsearch(hosts=f'http://{ELASTIC_HOST}:{ELASTIC_PORT}', verify_certs=False, ssl_show_warn=False)
-    while True:
-        if es_client.ping():
-            print("Elastic is ready.")
-            break
-        time.sleep(1)
+    elastic_client = elasticsearch.Elasticsearch(
+        hosts=test_settings.elastic_settings.get_host(),
+        verify_certs=False,
+        ssl_show_warn=False
+    )
+    try:
+        result = ping_elastic(elastic_client)
+        print(result)
+    except (elasticsearch.ConnectionError, TimeoutError) as e:
+        print(e)
