@@ -1,0 +1,32 @@
+services:
+
+  auth-service:
+    build: .
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    depends_on:
+      auth_db:
+        condition: service_healthy
+
+  auth-db:
+    image: postgres:17.4
+    volumes:
+      - pg-data-auth:/var/lib/postgresql/data
+      - ./database_dump_auth.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - "${POSTGRES_PORT}"
+    env_file:
+      - ../.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+  pg-data-auth:
