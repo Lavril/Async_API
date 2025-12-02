@@ -1,0 +1,28 @@
+from logging import config as logging_config
+from pathlib import Path
+
+from pydantic_settings import BaseSettings
+
+from core.logger import LOGGING
+
+# Применяем настройки логирования
+logging_config.dictConfig(LOGGING)
+
+
+class Settings(BaseSettings):
+    # Переменные прокидываются в окружение контейнера на этапе сборки
+    debug: bool = False
+    base_dir: Path = Path(__file__).resolve().parent.parent
+    project_name: str = 'auth'
+
+    redis_host: str = '127.0.0.1'
+    redis_port: int = 6379
+
+    postgres_user: str = 'postgres'
+    postgres_password: str = ""
+    postgres_host: str = '127.0.0.1'
+    postgres_port: int = 5432
+    postgres_db: str = 'auth'
+
+
+settings = Settings()
