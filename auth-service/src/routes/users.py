@@ -1,4 +1,3 @@
-# routes/users.py
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.encoders import jsonable_encoder
@@ -8,7 +7,7 @@ from models.entity import User
 from schemas.entity import UserCreate, UserInDB
 
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users")
 
 
 @router.post('/signup', response_model=UserInDB, status_code=status.HTTP_201_CREATED)
