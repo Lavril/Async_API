@@ -1,9 +1,5 @@
 services:
 
-  auth-db:
-    image: postgres:17.4
-    volumes:
-      - pg-data-auth:/var/lib/postgresql/data
   fastapi:
     build:
       dockerfile: Dockerfile
@@ -19,18 +15,19 @@ services:
       redis:
         condition: service_healthy
 
-  fastapi:
-    build:
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+  auth-db:
+    image: postgres:17.4
+    volumes:
+      - pg-data-auth:/var/lib/postgresql/data7
     expose:
-      - "8080"
+      - "${POSTGRES_PORT}"
     env_file:
       - .env
-    depends_on:
-      auth-db:
-        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   redis:
     image: redis:7.4.3
