@@ -54,14 +54,11 @@ async def get_roles(db: SessionDep) -> list[RoleInDB]:
 
 @router.patch("/roles/{user_id}", response_model=RoleInDB, status_code=status.HTTP_200_OK)
 async def update_roles(user_id: uuid.UUID, role_update: RoleUpdate ,db: SessionDep) -> RoleInDB:
-    user = await db.execute(select(User).where(User.id == user_id))
-    if not user:
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user.scalar_one_or_none():
         raise HTTPException(404, "Пользователь не найден")
 
     result = await db.execute(select(Role).where(Role.user_id == user_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(404, "У пользователя нет роли")
-
     role = result.scalars().first()
     if not role:
         raise HTTPException(404, "Роль не найдена")

@@ -19,10 +19,7 @@ class UserInDB(BaseModel):
     first_name: str
     last_name: str
 
-
-    # class Config:
-    #     orm_mode = True
-    model_config = ConfigDict(from_attributes=True) # what is it
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleCreate(BaseModel):
@@ -35,8 +32,7 @@ class RoleInDB(BaseModel):
     user_id: UUID
     role: UserRole
 
-    class Config:
-        from_attributes = True # ^^^
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleUpdate(BaseModel):
