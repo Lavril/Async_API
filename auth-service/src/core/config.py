@@ -24,5 +24,14 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     postgres_db: str = 'auth'
 
+    # JWT
+    SECRET_KEY: str = "your-secret-key-change-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # CORS
+    CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8000"]
+
 
 settings = Settings()
