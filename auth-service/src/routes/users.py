@@ -19,6 +19,15 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 async def create_user(user_create: UserCreate, db: SessionDep) -> UserInDB:
     user_dto = jsonable_encoder(user_create)
     user = User(**user_dto)
+
+    result = (await db.execute(select(User).where(User.login == user.login))).scalar_one_or_none()
+    if result:
+        raise HTTPException(400, "Этот логин уже занят")
+
+    result = (await db.execute(select(User).where(User.email == user.email))).scalar_one_or_none()
+    if result:
+        raise HTTPException(400, "Этот почтовый адрес уже занят")
+
     db.add(user)
     await db.commit()
     await db.refresh(user)

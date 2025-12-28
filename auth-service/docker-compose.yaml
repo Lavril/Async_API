@@ -18,7 +18,7 @@ services:
   auth-db:
     image: postgres:17.4
     volumes:
-      - pg-data-auth:/var/lib/postgresql/data7
+      - pg-data-auth:/var/lib/postgresql/data
     expose:
       - "${POSTGRES_PORT}"
     env_file:
