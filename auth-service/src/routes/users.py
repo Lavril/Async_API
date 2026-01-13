@@ -17,16 +17,26 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 @router.post("/signup", response_model=UserInDB, status_code=status.HTTP_201_CREATED)
 async def create_user(user_create: UserCreate, db: SessionDep) -> UserInDB:
+    existing_user_by_login = await db.execute(
+        select(User).where(User.login == user_create.login)
+    )
+    if existing_user_by_login.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Этот логин уже занят"
+        )
+
+    existing_user_by_email = await db.execute(
+        select(User).where(User.email == user_create.email)
+    )
+    if existing_user_by_email.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Этот почтовый адрес уже занят"
+        )
+
     user_dto = jsonable_encoder(user_create)
     user = User(**user_dto)
-
-    result = (await db.execute(select(User).where(User.login == user.login))).scalar_one_or_none()
-    if result:
-        raise HTTPException(400, "Этот логин уже занят")
-
-    result = (await db.execute(select(User).where(User.email == user.email))).scalar_one_or_none()
-    if result:
-        raise HTTPException(400, "Этот почтовый адрес уже занят")
 
     db.add(user)
     await db.commit()
@@ -62,7 +72,7 @@ async def get_roles(db: SessionDep) -> list[RoleInDB]:
 
 
 @router.patch("/roles/{user_id}", response_model=RoleInDB, status_code=status.HTTP_200_OK)
-async def update_roles(user_id: uuid.UUID, role_update: RoleUpdate ,db: SessionDep) -> RoleInDB:
+async def update_roles(user_id: uuid.UUID, role_update: RoleUpdate, db: SessionDep) -> RoleInDB:
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(404, "Пользователь не найден")
