@@ -9,9 +9,7 @@ Base = declarative_base()
 # Настройки подключения к БД передаём из переменных окружения, которые заранее загружены в файл настроек
 dsn = f'postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}'
 engine = create_async_engine(dsn, echo=True, future=True)
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
+async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False) # type: ignore
 
 
 # Dependency
