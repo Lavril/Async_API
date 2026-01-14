@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.redis_db import store_refresh_token, revoke_refresh_token, revoke_access_token
 from db.repository import UserRepository, LoginHistoryRepository
 from core.security import verify_password
+from models.entity import UserRole
 from schemas.token import TokenResponse
 from async_fastapi_jwt_auth import AuthJWT
 
@@ -30,7 +31,7 @@ class AuthService:
         return {
             "id": user.id,
             "login": user.login,
-            "role": user.role.value
+            "role": user.roles[0].role.value if user.roles else UserRole.USER.value
         }
 
     async def login(

@@ -2,8 +2,7 @@ import re
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, field_validator, constr, Field
-
-from models.entity import Role
+from models.entity import UserRole
 
 
 class UserBase(BaseModel):
@@ -11,7 +10,6 @@ class UserBase(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    role: Role
 
 
 class UserCreate(UserBase):
@@ -76,3 +74,20 @@ class UserChangeLogin(BaseModel):
 class LoginSchema(BaseModel):
     login: str
     password: str
+
+
+class RoleCreate(BaseModel):
+    user_id: UUID
+    role: UserRole
+
+
+class RoleInDB(BaseModel):
+    id: UUID
+    user_id: UUID
+    role: UserRole
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleUpdate(BaseModel):
+    role: UserRole

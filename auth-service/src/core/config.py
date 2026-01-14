@@ -33,5 +33,10 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8000"]
 
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8"
+    }
+
 
 settings = Settings()

@@ -13,6 +13,7 @@ from core.config import settings
 from db import redis_db as redis
 from db import postgres
 from routes import users
+import auth.jwt  # НЕ УДАЛЯТЬ # noqa
 
 
 @asynccontextmanager

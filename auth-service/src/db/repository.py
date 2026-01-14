@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.entity import User, History, Role
+from models.entity import User, History, UserRole, Role
 from core.security import get_password_hash, verify_password
 
 
@@ -22,7 +22,7 @@ class UserRepository:
     async def get_user_by_login(self, login: str) -> User | None:
         """Get user by login"""
         result = await self.session.execute(
-            select(User).where(User.login == login)
+            select(User).where(User.login == login).options(selectinload(User.roles))
         )
         return result.scalar_one_or_none()
 
@@ -40,7 +40,7 @@ class UserRepository:
         password: str,
         first_name: str,
         last_name: str,
-        role: Role = Role.USER
+        role: UserRole = UserRole.USER
     ) -> User:
         """Create new user"""
         hashed_password = get_password_hash(password)
@@ -50,9 +50,16 @@ class UserRepository:
             password=hashed_password,
             first_name=first_name,
             last_name=last_name,
-            role=role
         )
         self.session.add(user)
+        await self.session.flush()
+
+        new_role = Role(
+            user_id=user.id,
+            role=role
+        )
+
+        self.session.add(new_role)
         await self.session.commit()
         await self.session.refresh(user)
         return user
@@ -117,9 +124,9 @@ class LoginHistoryRepository:
         result = await self.session.execute(
             select(History)
             .where(History.user_id == user_id)
-            .order_by(History.login_time.desc())
+            .order_by(History.created_at.desc())
             .limit(limit)
             .offset(offset)
-            .options(selectinload(History.user))
+            .options(selectinload(History.users))
         )
         return result.scalars().all()
