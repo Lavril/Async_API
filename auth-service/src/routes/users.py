@@ -18,25 +18,6 @@ from models.entity import User, Role
 router = APIRouter(prefix="/users")
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
-@router.post("/signup", response_model=UserInDB, status_code=status.HTTP_201_CREATED)
-async def create_user(user_create: UserCreate, db: SessionDep) -> UserInDB:
-    existing_user_by_login = await db.execute(
-        select(User).where(User.login == user_create.login)
-    )
-    if existing_user_by_login.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Этот логин уже занят"
-        )
-
-    existing_user_by_email = await db.execute(
-        select(User).where(User.email == user_create.email)
-    )
-    if existing_user_by_email.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Этот почтовый адрес уже занят"
-        )
 
 @router.post('/signup', response_model=UserInDB, status_code=status.HTTP_201_CREATED)
 async def create_user(user_create: UserCreate, session: AsyncSession = Depends(get_session)) -> UserInDB:

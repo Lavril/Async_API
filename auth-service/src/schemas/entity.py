@@ -1,6 +1,5 @@
 import re
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, EmailStr
 
 from pydantic import BaseModel, ConfigDict, EmailStr, field_validator, constr, Field
 from models.entity import UserRole
@@ -89,7 +88,6 @@ class RoleInDB(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    model_config = ConfigDict(from_attributes=True)
 
 class RoleUpdate(BaseModel):
     role: UserRole
