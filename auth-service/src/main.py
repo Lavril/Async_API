@@ -1,13 +1,19 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from async_fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, RefreshTokenRequired, \
+    AccessTokenRequired
+from fastapi import FastAPI, Request
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import ORJSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
+from starlette.responses import JSONResponse
 
 from core.config import settings
 from db import redis_db as redis
 from db import postgres
 from routes import users
+import auth.jwt  # НЕ УДАЛЯТЬ # noqa
 
 
 @asynccontextmanager
@@ -27,6 +33,33 @@ async def lifespan(app: FastAPI):
     await postgres.engine.dispose()
 
 
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Auth API",
+        version="1.0.0",
+        description="JWT authentication",
+        routes=app.routes,
+    )
+
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+
+    openapi_schema["security"] = [
+        {"BearerAuth": []}
+    ]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
 app = FastAPI(
     title=settings.project_name,
     docs_url='/api/openapi',
@@ -36,5 +69,59 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.openapi = custom_openapi
 
 app.include_router(users.router, tags=["Пользователи"])
+
+
+@app.exception_handler(RevokedTokenError)
+async def revoked_token_exception_handler(
+    request: Request,
+    exc: RevokedTokenError,
+):
+    return JSONResponse(
+        status_code=401,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(MissingTokenError)
+async def missing_token_exception_handler(
+    request: Request,
+    exc: MissingTokenError,
+):
+    return JSONResponse(
+        status_code=401,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(RefreshTokenRequired)
+async def refresh_token_required_exception_handler(
+    request: Request,
+    exc: RefreshTokenRequired,
+):
+    return JSONResponse(
+        status_code=401,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(AccessTokenRequired)
+async def access_token_required_exception_handler(
+    request: Request,
+    exc: AccessTokenRequired,
+):
+    return JSONResponse(
+        status_code=401,
+        content={"detail": exc.message},
+    )

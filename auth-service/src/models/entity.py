@@ -2,11 +2,10 @@ import uuid
 import enum
 from datetime import datetime, timezone
 
-from pydantic import EmailStr
-from sqlalchemy import Column, String, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy import String, ForeignKey, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.dialects.postgresql import UUID
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash
 
 from db.postgres import Base
 
@@ -22,16 +21,8 @@ class User(Base):
     last_name: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-
     roles: Mapped[list["Role"]] = relationship(back_populates="users", passive_deletes=True, cascade="all, delete-orphan")
     history: Mapped[list["History"]] = relationship(back_populates="users", passive_deletes=True, cascade="all, delete-orphan")
-
-    def __init__(self, login: str, email: str, password: str, first_name: str, last_name: str) -> None:
-        self.login = login
-        self.email = email
-        self.password = generate_password_hash(password)
-        self.first_name = first_name
-        self.last_name = last_name
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password, password)
@@ -69,7 +60,7 @@ class History(Base):
     __tablename__ = 'history'
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     user_agent: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     login_info: Mapped[str | None] = mapped_column(String(255))
