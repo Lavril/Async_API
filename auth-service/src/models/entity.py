@@ -1,8 +1,7 @@
 import uuid
-import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import String, ForeignKey, DateTime, Enum as SQLEnum
+from sqlalchemy import String, ForeignKey, DateTime, Integer, Text
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.dialects.postgresql import UUID
 from werkzeug.security import check_password_hash
@@ -17,6 +16,7 @@ class User(Base):
     login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), unique=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
+    # role field removed - use roles table instead
     first_name: Mapped[str | None] = mapped_column(String(50))
     last_name: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -31,29 +31,45 @@ class User(Base):
         return f'<User {self.login}>'
 
 
-class UserRole(str, enum.Enum):
-    USER = "user"  # Обычный пользователь
-    SUBSCRIBER = "subscriber"  # Подписчик (платный)
-    ADMIN = "admin"  # Администратор
-    SUPERUSER = "superuser"  # Суперпользователь (полный доступ)
+class RoleType(Base):
+    __tablename__ = 'role_type'
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    permissions: Mapped[int] = mapped_column(Integer, default=0)  # Битовые флаги прав
+    priority: Mapped[int] = mapped_column(Integer, default=0)     # Приоритет для иерархии
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    
+    users: Mapped[list["Role"]] = relationship(back_populates="role_type")
+
+    def __init__(self, name: str, description: str | None = None, permissions: int = 0, priority: int = 0) -> None:
+        self.name = name
+        self.description = description
+        self.permissions = permissions
+        self.priority = priority
+
+    def __repr__(self) -> str:
+        return f"<RoleType {self.name} (priority: {self.priority})>"
 
 
 class Role(Base):
     __tablename__ = 'roles'
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
-    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole), nullable=False, default=UserRole.USER)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role_type_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role_type.id", ondelete="CASCADE"), nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     users: Mapped["User"] = relationship(back_populates="roles")
+    role_type: Mapped["RoleType"] = relationship(back_populates="users")
 
-    def __init__(self, user_id: uuid.UUID, role: UserRole) -> None:
+    def __init__(self, user_id: uuid.UUID, role_type_id: uuid.UUID) -> None:
         self.user_id = user_id
-        self.role = role
+        self.role_type_id = role_type_id
 
     def __repr__(self) -> str:
-        return f"<Role {self.role}>"
+        return f"<Role user_id={self.user_id} role_type_id={self.role_type_id}>"
 
 
 class History(Base):

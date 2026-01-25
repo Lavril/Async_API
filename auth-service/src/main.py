@@ -12,18 +12,22 @@ from starlette.responses import JSONResponse
 from core.config import settings
 from db import redis_db as redis
 from db import postgres
-from routes import users
+from db.postgres import async_session
+from routes import users, role_types
 import auth.jwt  # НЕ УДАЛЯТЬ # noqa
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Подключаемся к базам при старте сервера
     redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
 
-    # В проде нужно использовать миграции вместо этого. Это только для разработки и тестов
     from models.entity import User  # noqa: F401
     await postgres.create_database()
+
+    from services.role_service import RoleService
+    async with async_session() as session:
+        role_service = RoleService(session)
+        await role_service.initialize_default_roles()
 
     yield
 
@@ -81,6 +85,7 @@ app.add_middleware(
 app.openapi = custom_openapi
 
 app.include_router(users.router, tags=["Пользователи"])
+app.include_router(role_types.router, tags=["Роли"])
 
 
 @app.exception_handler(RevokedTokenError)
