@@ -169,7 +169,7 @@ class PermissionService:
                 "roles": [],
                 "permissions": [],
                 "permissions_mask": 0,
-                "highest_priority": 0
+                "highest_role_priority": 0
             }
         
         user_roles = await self.role_repo.get_user_roles(user_id)
@@ -185,7 +185,7 @@ class PermissionService:
             "roles": role_names,
             "permissions": permissions_list,
             "permissions_mask": permissions_mask,
-            "highest_priority": highest_priority
+            "highest_role_priority": highest_priority
         }
     
     async def validate_role_hierarchy(

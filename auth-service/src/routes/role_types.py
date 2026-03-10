@@ -14,7 +14,7 @@ from services.role_service import RoleService
 from services.permission_service import PermissionService
 from constants.permissions import RolePermissions, RolePriority
 
-router = APIRouter(prefix="/roles", tags=["roles"])
+router = APIRouter(prefix="/roles")
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
