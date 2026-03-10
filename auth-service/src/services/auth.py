@@ -1,3 +1,4 @@
+import uuid
 from async_fastapi_jwt_auth.exceptions import MissingTokenError, JWTDecodeError, AccessTokenRequired
 from fastapi import Request, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -6,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.redis_db import store_refresh_token, revoke_refresh_token, revoke_access_token
 from db.repository import UserRepository, LoginHistoryRepository
 from core.security import verify_password
-from models.entity import UserRole
+from models.entity import User
 from schemas.token import TokenResponse
 from async_fastapi_jwt_auth import AuthJWT
+from services.permission_service import PermissionService
 
 
 class AuthService:
@@ -28,10 +30,21 @@ class AuthService:
         if not user or not verify_password(password, user.password):
             return None
 
+        # Get user roles and permissions
+        user_roles = await self.user_repo.get_user_role_names(user.id)
+        user_permissions = await self.user_repo.get_user_permissions(user.id)
+        user_priority = await self.user_repo.get_highest_role_priority(user.id)
+        
         return {
-            "id": user.id,
+            "id": str(user.id),
             "login": user.login,
-            "role": user.roles[0].role.value if user.roles else UserRole.USER.value
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "roles": user_roles,
+            "permissions": user_permissions,
+            "highest_role_priority": user_priority,
+            "primary_role": user_roles[0] if user_roles else "user"
         }
 
     async def login(
@@ -48,15 +61,24 @@ class AuthService:
                 detail="Incorrect login or password"
             )
 
-        # Create access and refresh tokens
+        # Create access and refresh tokens with new user data
+        token_claims = {
+            "user_id": user["id"], 
+            "roles": user["roles"],
+            "permissions": user["permissions"],
+            "highest_role_priority": user["highest_role_priority"],
+            "primary_role": user["primary_role"],
+            "email": user.get("email")
+        }
+        
         access_token = await self.auth.create_access_token(
             subject=user["login"],
-            user_claims={"user_id": str(user["id"]), "role": user["role"], "email": user.get("email")}
+            user_claims=token_claims
         )
 
         refresh_token = await self.auth.create_refresh_token(
             subject=user["login"],
-            user_claims={"user_id": str(user["id"]), "role": user["role"], "email": user.get("email")}
+            user_claims=token_claims
         )
 
         # Store refresh token in Redis
@@ -102,23 +124,24 @@ class AuthService:
         # Получаем данные из текущего токена
         current_user = await self.auth.get_jwt_subject()
 
-        # Создаем новый access токен
+        # Создаем новый access токен с обновленными claims
+        token_claims = {
+            "user_id": user_claims.get("user_id"),
+            "roles": user_claims.get("roles", []),
+            "permissions": user_claims.get("permissions", 0),
+            "highest_role_priority": user_claims.get("highest_role_priority", 0),
+            "primary_role": user_claims.get("primary_role", "user"),
+            "email": user_claims.get("email")
+        }
+        
         new_access_token = await self.auth.create_access_token(
             subject=current_user,
-            user_claims={
-                "user_id": user_claims.get("user_id"),
-                "role": user_claims.get("role"),
-                "email": user_claims.get("email")
-            }
+            user_claims=token_claims
         )
 
         refresh_token = await self.auth.create_refresh_token(
             subject=current_user,
-            user_claims={
-                "user_id": user_claims.get("user_id"),
-                "role": user_claims.get("role"),
-                "email": user_claims.get("email")
-            }
+            user_claims=token_claims
         )
         new_raw = await self.auth.get_raw_jwt(refresh_token)
         await store_refresh_token(new_raw["jti"], user_claims.get("user_id"), new_raw["exp"])
@@ -170,7 +193,7 @@ class AuthService:
         await self.auth.jwt_required()
 
         claims = await self.auth.get_raw_jwt()
-        user_id = claims["user_id"]
+        user_id = uuid.UUID(claims["user_id"])  # Convert string back to UUID
 
         history = await self.history_repo.get_user_login_history(
             user_id=user_id,
@@ -186,7 +209,7 @@ class AuthService:
         await self.auth.jwt_required()
 
         claims = await self.auth.get_raw_jwt()
-        user_id = claims["user_id"]
+        user_id = uuid.UUID(claims["user_id"])  # Convert string back to UUID
 
         try:
             await self.user_repo.update_user_login(user_id, new_login)
@@ -198,7 +221,7 @@ class AuthService:
         await self.auth.jwt_required()
 
         claims = await self.auth.get_raw_jwt()
-        user_id = claims["user_id"]
+        user_id = uuid.UUID(claims["user_id"])  # Convert string back to UUID
 
         if not await self.user_repo.verify_user_password(user_id, current_password):
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Current password incorrect")
