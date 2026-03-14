@@ -31,7 +31,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await postgres.purge_database()
+    if settings.debug:
+        await postgres.purge_database()
     # Отключаемся от баз при завершении работы
     await redis.redis.close()
     await postgres.engine.dispose()
