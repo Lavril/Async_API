@@ -2,6 +2,7 @@ from logging import config as logging_config
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 from core.logger import LOGGING
 
@@ -25,13 +26,20 @@ class Settings(BaseSettings):
     postgres_db: str = 'auth'
 
     # JWT
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS
     CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8000"]
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        if not v or v.strip() == "" or v.strip() == "your-secret-key-change-in-production":
+            raise ValueError("SECRET_KEY environment variable must be set to a secure value")
+        return v
 
     model_config = {
         "env_file": ".env",
