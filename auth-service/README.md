@@ -37,6 +37,7 @@ HTTP‑API документировано через встроенную док
 ## Структура проекта (упрощённо)
 
 - `src/main.py` — точка входа FastAPI‑приложения, конфигурация CORS, OpenAPI, lifespan (инициализация БД и дефолтных ролей).
+- `src/dependencies.py` — зависимости FastAPI (`SessionDep`, `AuthJWTDep`, `UserRepoDep`, `AuthServiceDep`, `RoleServiceDep`, `PermissionServiceDep`) для DI и переопределения в тестах.
 - `src/routes/users.py` — маршруты для регистрации, логина, смены логина/пароля, работы с ролями пользователя, проверки прав.
 - `src/routes/role_types.py` — CRUD по типам ролей, получение доступных прав и иерархии.
 - `src/services/auth.py` — бизнес‑логика аутентификации, выдачи/обновления/отзыва токенов, история логинов.
