@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8000"]
 
+    # Rate limiting (fastapi-limiter + Redis; по IP)
+    rate_limit_enabled: bool = True
+    rate_limit_times: int = 120
+    rate_limit_seconds: int = 60
+    login_rate_limit_times: int = 10
+    login_rate_limit_seconds: int = 60
+    signup_rate_limit_times: int = 5
+    signup_rate_limit_seconds: int = 60
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v: str) -> str:

@@ -28,6 +28,7 @@ HTTP‑API документировано через встроенную док
 - **Кэш/хранилище токенов**: Redis
 - **ORM**: SQLAlchemy (async)
 - **JWT**: `async-fastapi-jwt-auth`
+- **Лимиты запросов**: `fastapi-limiter` (счётчики в **Redis**, по IP)
 - **HTTP‑сервер**: Uvicorn
 - **Reverse‑proxy**: Nginx (в Docker‑компоузе)
 
@@ -74,6 +75,11 @@ cp .env.template .env
 - **Redis:**
   - `REDIS_HOST` — хост Redis (в Docker‑компоузе: `redis`).
   - `REDIS_PORT` — порт Redis (по умолчанию `6379`).
+- **Лимиты запросов** (`fastapi-limiter`, ключ по IP):
+  - `RATE_LIMIT_ENABLED` — включить/выключить (`true`/`false`).
+  - `RATE_LIMIT_TIMES` / `RATE_LIMIT_SECONDS` — общий лимит на все маршруты роутеров `/users` и `/roles` (по умолчанию 120 запросов за 60 с).
+  - `LOGIN_RATE_LIMIT_TIMES` / `LOGIN_RATE_LIMIT_SECONDS` — дополнительный лимит на `POST /users/login` (по умолчанию 10/60).
+  - `SIGNUP_RATE_LIMIT_TIMES` / `SIGNUP_RATE_LIMIT_SECONDS` — дополнительный лимит на `POST /users/signup` (по умолчанию 5/60).
 
 При необходимости добавьте сюда параметры JWT (секрет, времена жизни токенов и т.п.), если они используются в `core/config.py` и настройке `AuthJWT`.
 

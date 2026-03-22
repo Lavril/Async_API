@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Request
 import uuid
 from typing import Annotated
 
+from fastapi_limiter.depends import RateLimiter
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,12 +23,38 @@ from services.role_service import RoleService
 from models.entity import User, Role
 from services.permission_service import PermissionService
 from constants.permissions import RolePermissions, RolePriority
+from core.config import settings
 
 router = APIRouter(prefix="/users")
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
+_signup_rate_deps = (
+    [
+        Depends(
+            RateLimiter(
+                times=settings.signup_rate_limit_times,
+                seconds=settings.signup_rate_limit_seconds,
+            )
+        )
+    ]
+    if settings.rate_limit_enabled
+    else []
+)
+_login_rate_deps = (
+    [
+        Depends(
+            RateLimiter(
+                times=settings.login_rate_limit_times,
+                seconds=settings.login_rate_limit_seconds,
+            )
+        )
+    ]
+    if settings.rate_limit_enabled
+    else []
+)
 
-@router.post('/signup', status_code=status.HTTP_201_CREATED)
+
+@router.post('/signup', status_code=status.HTTP_201_CREATED, dependencies=_signup_rate_deps)
 async def create_user(user_create: UserCreate, session: AsyncSession = Depends(get_session)):
     """Регистрация пользователя."""
     user_repo = UserRepository(session)
@@ -77,7 +104,7 @@ async def create_user(user_create: UserCreate, session: AsyncSession = Depends(g
     return response
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=_login_rate_deps)
 async def login(payload: LoginSchema, request: Request, session: AsyncSession = Depends(get_session), Authorize: AuthJWT = Depends()):
     """Аутентификация."""
     auth_service = AuthService(session, Authorize)
