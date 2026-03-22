@@ -2,7 +2,9 @@ from contextlib import asynccontextmanager
 
 from async_fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, RefreshTokenRequired, \
     AccessTokenRequired
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,19 +22,25 @@ import auth.jwt  # НЕ УДАЛЯТЬ # noqa
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
+    if settings.rate_limit_enabled:
+        await FastAPILimiter.init(redis.redis)
 
     from models.entity import User  # noqa: F401
-    await postgres.create_database()
+    if settings.debug:
+        await postgres.create_database()
 
-    from services.role_service import RoleService
-    async with async_session() as session:
-        role_service = RoleService(session)
-        await role_service.initialize_default_roles()
+        from services.role_service import RoleService
+        async with async_session() as session:
+            role_service = RoleService(session)
+            await role_service.initialize_default_roles()
 
     yield
 
-    await postgres.purge_database()
+    if settings.debug:
+        await postgres.purge_database()
     # Отключаемся от баз при завершении работы
+    if settings.rate_limit_enabled:
+        await FastAPILimiter.close()
     await redis.redis.close()
     await postgres.engine.dispose()
 
@@ -84,8 +92,14 @@ app.add_middleware(
 
 app.openapi = custom_openapi
 
-app.include_router(users.router, tags=["Пользователи"])
-app.include_router(role_types.router, tags=["Роли"])
+_rate_limit_deps = (
+    [Depends(RateLimiter(times=settings.rate_limit_times, seconds=settings.rate_limit_seconds))]
+    if settings.rate_limit_enabled
+    else []
+)
+
+app.include_router(users.router, tags=["Пользователи"], dependencies=_rate_limit_deps)
+app.include_router(role_types.router, tags=["Роли"], dependencies=_rate_limit_deps)
 
 
 @app.exception_handler(RevokedTokenError)

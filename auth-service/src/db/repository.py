@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from typing import Optional
 
 from sqlalchemy import select, update
@@ -51,7 +52,7 @@ class UserRepository:
         role_name: str = "user"
     ) -> User:
         """Create new user with specified role"""
-        hashed_password = get_password_hash(password)
+        hashed_password = await asyncio.get_running_loop().run_in_executor(None, get_password_hash, password)
         user = User(
             login=login,
             email=email,
@@ -76,7 +77,7 @@ class UserRepository:
 
     async def update_user_password(self, user_id: uuid.UUID, new_password: str) -> bool:
         """Update user password"""
-        hashed_password = get_password_hash(new_password)
+        hashed_password = await asyncio.get_running_loop().run_in_executor(None, get_password_hash, new_password)
         result = await self.session.execute(
             update(User)
             .where(User.id == user_id)
@@ -100,7 +101,7 @@ class UserRepository:
         user = await self.get_user_by_id(user_id)
         if not user:
             return False
-        return verify_password(password, user.password)
+        return await asyncio.get_running_loop().run_in_executor(None, verify_password, password, user.password)
 
     async def get_user_role_names(self, user_id: uuid.UUID) -> list[str]:
         """Get list of role names for user"""

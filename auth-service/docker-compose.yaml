@@ -10,6 +10,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    container_name: auth_service
     depends_on:
       auth-db:
         condition: service_healthy
