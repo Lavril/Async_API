@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from async_fastapi_jwt_auth import AuthJWT
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgres import get_session
@@ -44,3 +44,15 @@ def get_permission_service(session: SessionDep) -> PermissionService:
 
 
 PermissionServiceDep = Annotated[PermissionService, Depends(get_permission_service)]
+
+
+class PaginationParams:
+    def __init__(
+        self,
+        limit: int = Query(50, ge=1, le=100),
+        offset: int = Query(0, ge=0),
+    ):
+        self.limit = limit
+        self.offset = offset
+
+PaginationParamsDep = Annotated[PaginationParams, Depends()]

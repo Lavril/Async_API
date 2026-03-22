@@ -13,6 +13,7 @@ from dependencies import (
     RoleServiceDep,
     SessionDep,
     UserRepoDep,
+    PaginationParamsDep,
 )
 from models.entity import User, Role
 from schemas.entity import (
@@ -145,11 +146,10 @@ async def change_password(payload: UserChangePassword, auth_service: AuthService
 @router.get("/login-history")
 async def login_history(
     auth_service: AuthServiceDep,
-    limit: int = 50,
-    offset: int = 0,
+    pagination_params: PaginationParamsDep,
 ):
     """Получение пользователем своей истории входов в аккаунт."""
-    return await auth_service.login_history(limit, offset)
+    return await auth_service.login_history(pagination_params.limit, pagination_params.offset)
 
 
 @router.post("/roles/assign", response_model=UserRoleInDB, status_code=status.HTTP_201_CREATED)
