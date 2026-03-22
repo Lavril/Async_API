@@ -22,12 +22,13 @@ async def lifespan(app: FastAPI):
     redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
 
     from models.entity import User  # noqa: F401
-    await postgres.create_database()
+    if settings.debug:
+        await postgres.create_database()
 
-    from services.role_service import RoleService
-    async with async_session() as session:
-        role_service = RoleService(session)
-        await role_service.initialize_default_roles()
+        from services.role_service import RoleService
+        async with async_session() as session:
+            role_service = RoleService(session)
+            await role_service.initialize_default_roles()
 
     yield
 

@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc \
     && apt-get purge -y --auto-remove gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Alembic конфигурация/скрипты миграций
+COPY alembic.ini ./
+COPY alembic ./alembic
+
 COPY src/ ./
 #RUN chmod +x ./src/main.py
 
