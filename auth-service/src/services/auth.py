@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from async_fastapi_jwt_auth.exceptions import MissingTokenError, JWTDecodeError, AccessTokenRequired
 from fastapi import Request, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -27,7 +28,7 @@ class AuthService:
     ) -> dict | None:
         """Сервис для аутентификации пользователя."""
         user = await self.user_repo.get_user_by_login(login)
-        if not user or not verify_password(password, user.password):
+        if not user or not await asyncio.get_running_loop().run_in_executor(None, verify_password, password, user.password):
             return None
 
         # Get user roles and permissions
